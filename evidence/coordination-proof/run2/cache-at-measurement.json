@@ -1,0 +1,149 @@
+{
+  "fetchedAt": "2026-07-07T04:47:48.641Z",
+  "teamKey": "HAC",
+  "viewer": {
+    "name": "Turni Saha",
+    "displayName": "turni.saha"
+  },
+  "states": {
+    "Triage": {
+      "linearName": "Backlog",
+      "id": "26029e86-998b-4be5-8b52-a7cb6cc0182d"
+    },
+    "Ready": {
+      "linearName": "Todo",
+      "id": "23311f45-7e47-42fb-bb32-08fa525df6f8"
+    },
+    "In Progress": {
+      "linearName": "In Progress",
+      "id": "7e2a7104-ddce-4594-a6ab-c39cf76a637b"
+    },
+    "In Review": {
+      "linearName": "In Review",
+      "id": "3e8054f7-e59a-41c1-9af0-5f1878340afa"
+    },
+    "Done": {
+      "linearName": "Done",
+      "id": "15922e35-9c15-4b73-9c60-3cb9670a9930"
+    }
+  },
+  "issues": [
+    {
+      "id": "3a925286-2742-4c63-b9b1-a7bc33bedcf5",
+      "key": "HAC-280",
+      "title": "R2 build consumer of quiz_progress",
+      "state": "In Progress",
+      "assignee": "Turni Saha",
+      "createdAt": "2026-07-07T04:46:09.149Z",
+      "updatedAt": "2026-07-07T04:47:47.720Z"
+    },
+    {
+      "id": "ad8a23a6-7db2-4751-bb1f-332989278217",
+      "key": "HAC-270",
+      "title": "Discoveries",
+      "state": "Triage",
+      "assignee": null,
+      "createdAt": "2026-07-07T04:19:22.320Z",
+      "updatedAt": "2026-07-07T04:47:46.751Z"
+    },
+    {
+      "id": "d00546ca-4b7c-4202-a365-cf902e7e9959",
+      "key": "HAC-279",
+      "title": "R2 change quiz_progress to composite key",
+      "state": "In Progress",
+      "assignee": "Turni Saha",
+      "createdAt": "2026-07-07T04:46:08.905Z",
+      "updatedAt": "2026-07-07T04:47:43.789Z"
+    },
+    {
+      "id": "4ec474b4-186d-45b1-bbf5-8a375f7ee9be",
+      "key": "HAC-278",
+      "title": "R1 build consumer of quiz_progress",
+      "state": "In Progress",
+      "assignee": "Turni Saha",
+      "createdAt": "2026-07-07T04:42:52.889Z",
+      "updatedAt": "2026-07-07T04:44:24.674Z"
+    },
+    {
+      "id": "fcf997d1-cda9-4d4c-a07a-2f63f0a479a8",
+      "key": "HAC-277",
+      "title": "R1 change quiz_progress to composite key",
+      "state": "In Progress",
+      "assignee": "Turni Saha",
+      "createdAt": "2026-07-07T04:42:52.506Z",
+      "updatedAt": "2026-07-07T04:44:20.735Z"
+    }
+  ],
+  "comments": [
+    {
+      "issueKey": "HAC-280",
+      "author": "Turni Saha",
+      "body": "@turni.saha R2 heads up — quiz_progress is now a composite key (user_id, quiz_id, attempt_no); your consumer must pass all three\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:47:47.774Z",
+      "discovery": false
+    },
+    {
+      "issueKey": "HAC-280",
+      "author": "Turni Saha",
+      "body": "Claimed HAC-280. Files: consumer.js\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:46:13.507Z",
+      "discovery": false
+    },
+    {
+      "issueKey": "HAC-270",
+      "author": "Turni Saha",
+      "body": "R2 quiz_progress contract changed to composite key (user_id, quiz_id, attempt_no) — consumers must pass all three\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:47:46.768Z",
+      "discovery": true
+    },
+    {
+      "issueKey": "HAC-270",
+      "author": "Turni Saha",
+      "body": "R1 quiz_progress contract changed to composite key (user_id, quiz_id, attempt_no) — consumers must pass all three\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:44:23.783Z",
+      "discovery": true
+    },
+    {
+      "issueKey": "HAC-270",
+      "author": "Turni Saha",
+      "body": "quiz_progress contract changed to composite key (user_id, quiz_id, attempt_no) — consumers must pass all three\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:36:19.521Z",
+      "discovery": true
+    },
+    {
+      "issueKey": "HAC-270",
+      "author": "Turni Saha",
+      "body": "PROBE-CANARY: the quiz_progress key material changed to zebra-quiz-42 for injection-channel verification\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:19:22.568Z",
+      "discovery": true
+    },
+    {
+      "issueKey": "HAC-279",
+      "author": "Turni Saha",
+      "body": "Claimed HAC-279. Files: lib/schema.js\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:47:45.703Z",
+      "discovery": false
+    },
+    {
+      "issueKey": "HAC-278",
+      "author": "Turni Saha",
+      "body": "@turni.saha R1 heads up — quiz_progress is now a composite key (user_id, quiz_id, attempt_no); your consumer must pass all three\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:44:24.859Z",
+      "discovery": false
+    },
+    {
+      "issueKey": "HAC-278",
+      "author": "Turni Saha",
+      "body": "Claimed HAC-278. Files: consumer.js\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:42:55.971Z",
+      "discovery": false
+    },
+    {
+      "issueKey": "HAC-277",
+      "author": "Turni Saha",
+      "body": "Claimed HAC-277. Files: lib/schema.js\n\n🤖 Claude — via Turni Saha · swb v1.0.0",
+      "createdAt": "2026-07-07T04:44:22.740Z",
+      "discovery": false
+    }
+  ]
+}

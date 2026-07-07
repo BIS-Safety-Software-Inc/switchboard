@@ -1,0 +1,7 @@
+── switchboard · 22:50 · cache 0s · 4 new ──
+@you   HAC-282 Turni Saha: "@turni.saha R3 heads up — quiz_progress is now a composite key (user_id, quiz_id, attempt_no); your " → swb show HAC-282
+state  HAC-270 → Triage
+disc   R3 quiz_progress contract changed to composite key (user_id, quiz_id, attempt_no) — consum (Turni Saha)
+state  HAC-282 → In Progress
+act    if any item above touches your claimed ticket or declared files, state the impact before continuing
+──

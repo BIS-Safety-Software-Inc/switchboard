@@ -1,0 +1,8 @@
+
+MANUAL RECIPE: could not claim HAC-281 — claim it by hand:
+  1. Open Linear and assign yourself to HAC-281
+  2. Move HAC-281 to "In Progress"
+  3. git worktree add ../switchboard-wt/HAC-281 -b HAC-281
+  4. Post a comment on HAC-281: "claiming HAC-281; files: lib/schema.js"
+  cause: Linear API timed out after 5000ms
+

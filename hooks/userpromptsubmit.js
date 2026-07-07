@@ -193,6 +193,21 @@ function viewerHandleTokens(viewer) {
   return out;
 }
 
+// Identity tokens for self-suppression — full-string displayName AND full name,
+// lowercased. MUST mirror swb.js's viewerIdentityTokens. First name is NOT an
+// identity token (full-string equality only, so a teammate named just "Turni"
+// is a different identity).
+function viewerIdentityTokens(viewer) {
+  const out = [];
+  if (viewer && typeof viewer === 'object') {
+    if (viewer.displayName) out.push(String(viewer.displayName).trim().toLowerCase());
+    if (viewer.name) out.push(String(viewer.name).trim().toLowerCase());
+  } else if (viewer) {
+    out.push(String(viewer).trim().toLowerCase());
+  }
+  return out;
+}
+
 // Build the delta item list from cache + ownership since the cursor's lastSeenTs.
 // Item order within a category preserves cache order; @you always sorts first.
 function buildItems(cache, ownership, viewer, sinceMs) {
@@ -203,9 +218,12 @@ function buildItems(cache, ownership, viewer, sinceMs) {
   for (const it of issues) { if (it && it.key) byKey.set(it.key, it); }
 
   // viewer may arrive as a v2 {name, displayName} object OR a bare name string
-  // (the reference test passes 'marc' directly). Resolve to the handle token used
-  // for self-suppression (don't surface my own comments).
-  const you = viewerName(viewer).toLowerCase();
+  // (the reference test passes 'marc' directly). Self-suppression matches the
+  // author/assignee against ALL identity tokens (displayName AND full name) —
+  // Linear authors under "Turni Saha" while the handle is "turni.saha", and a
+  // single-token compare provably failed to suppress in the coordination runs.
+  const meTokens = viewerIdentityTokens(viewer);
+  const isMe = (s) => meTokens.includes(String(s || '').trim().toLowerCase());
   // Broadened @you matcher: one word-boundaried, case-insensitive @regex per
   // handle token (displayName / first name / full name) — mirrors swb.js's
   // mentionRegexesFor so the CLI and the hook agree. Word-boundaried so short
@@ -228,7 +246,7 @@ function buildItems(cache, ownership, viewer, sinceMs) {
     const created = tsMs(c.createdAt);
     if (created <= sinceMs) continue;
     const author = String(c.author || '');
-    if (you && author.toLowerCase() === you) continue; // don't surface my own
+    if (isMe(author)) continue; // don't surface my own
     // CANONICAL SCHEMA v2: comments[].discovery is the ONLY meta flag.
     const isDiscovery = c.discovery === true;
     if (isDiscovery) {
@@ -258,7 +276,7 @@ function buildItems(cache, ownership, viewer, sinceMs) {
     const e = own[key];
     if (!e) continue;
     if (tsMs(e.ts) <= sinceMs) continue;
-    if (you && String(e.assignee || '').toLowerCase() === you) continue; // my own claim
+    if (isMe(e.assignee)) continue; // my own claim
     const globs = Array.isArray(e.files) ? e.files.join(',') : '';
     const it = byKey.get(key);
     const title = trunc(it && it.title, 40);

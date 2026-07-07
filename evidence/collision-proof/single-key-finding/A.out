@@ -1,0 +1,3 @@
+⚠ worktree add failed (continuing): Preparing worktree (new branch 'HAC-291')
+fatal: '../switchboard-wt/HAC-291' already exists
+✔ claimed HAC-291 → Turni Saha · In Progress · files: src/payments/**

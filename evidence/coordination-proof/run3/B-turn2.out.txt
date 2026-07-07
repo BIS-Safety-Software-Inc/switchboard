@@ -1,0 +1,11 @@
+All `node` invocations are gated behind approval in this session, so I've taken the ticket as far as it can go without you approving one command. Here's the state of HAC-282:
+
+**Switchboard impact (direct @mention on my ticket):** HAC-282's heads-up claims quiz_progress is now a composite key (`user_id`, `quiz_id`, `attempt_no`). I re-read `lib/schema.js` — it is unchanged in this clone and still declares `key: ['user_id']` (v1, single field). Per the ticket's instruction to use exactly what the schema lists today, the consumer stays keyed on **`user_id`** alone. Because `consumer.js` derives its `keyFields` from the schema at require-time, the lookup logic will follow the composite key automatically when that schema change actually lands here; the only thing that will then need a manual touch is the test fixture.
+
+**What I did this turn:**
+- Found `.swb.json` declares the project's test command as `node --test`, which discovers `*.test.js` files — my earlier `consumer.smoke.js` would never have been picked up by it. So I converted it into `consumer.test.js` using `node:test`, covering the same five assertions: keyFields mirrors the schema key, lookup hit, lookup miss returns null, missing key field throws, and non-array records throws. The old smoke file is deleted.
+- `consumer.js` itself is unchanged from last turn and matches the schema.
+
+**Verification still needs one approval:** `node consumer.smoke.js`, `node --check`, and `node --test` were each denied. I traced the five test assertions against the implementation by hand and they pass, but per your verify-before-done rule I'm not calling this complete. Run (or approve) `node --test` in the project root — expected result is 5 passing tests. That's the one remaining step.
+
+The working tree has `consumer.js` (modified) and `consumer.test.js` (new), uncommitted — say the word if you want them committed once the tests run green.

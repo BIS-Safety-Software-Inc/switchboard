@@ -1,0 +1,2 @@
+worktree: ../switchboard-wt/HAC-280 (branch HAC-280)
+✔ claimed HAC-280 → Turni Saha · In Progress · files: consumer.js

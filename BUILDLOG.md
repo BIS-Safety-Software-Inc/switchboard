@@ -17,3 +17,10 @@
   - matcher-side: new `viewerHandleTokens`/`mentionRegexesFor`/`bodyMentionsViewer` build the @you regex set from displayName + first word of name + full name (escaped, word-boundaried, case-insensitive). `buildDeltaItems` now uses `bodyMentionsViewer`. Mirrored in `hooks/userpromptsubmit.js` inline engine (matcher change only; hooks tests stay green — posttooluse reuses its `computeDigest`).
 - Tests: added mocked ask-normalization (3) + matcher (4) unit tests; extended the LIVE round-trip to post an `@FirstName` ask and assert a SECOND session's digest surfaces `@you <key>`.
 - VERIFIED: bare `node --test` green (68 tests, 65 pass, 3 live-skip, 0 fail). Live subset green with the real HAC key — proof digest emitted: `@you   HAC-268 Turni Saha: "@turni.saha (Turni) does the digest surface a @Turni first-name mention? …" → swb show HAC-268`. HAC board torn down to 0 swb-test issues (0 issues total). No git commit (mastermind commits).
+
+## 2026-07-06 · Iteration 4 — CLOSING (mastermind: Fable)
+- PROOFS BOTH PASS. Coordination go/no-go 3/3 (real hook delivery, neutral prompts, B adapted unprompted every run). Collision: claim race 3/3 (27/27 asserts), ownership guard 4/4. Evidence under evidence/.
+- Honest findings handled: (1) single-key race limitation documented (arbiter = Linear user id; real pilot = one key per dev, cross-user race exercised via second org user ai@bistraining.ca); (2) self-suppression displayName-vs-fullname bug FIXED by mastermind (viewerIdentityTokens in swb.js + hook, regression test added, 69 tests green).
+- Playbook verified against live tool (zero material divergences). DRYRUN-CHECKLIST.md + evidence/INDEX.md written.
+- Fleet ops note: every agent failure this build was a StructuredOutput emit, never the work — final iterations switched to plain-text verdicts.
+- REMAINING FOR HUMANS: real-Windows install test (Jul 9), key rotation before Jul 13, VS Code-free onboarding of 16 devs per checklist.

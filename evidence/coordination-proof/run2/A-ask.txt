@@ -1,0 +1,1 @@
+✔ asked on HAC-280: @turni.saha R2 heads up — quiz_progress is now a composite key (user_id, quiz_id, attempt_no

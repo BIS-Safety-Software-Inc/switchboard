@@ -1,0 +1,2 @@
+{"ts":"2026-07-07T05:11:39.323Z","cmd":"claim","args":["claim","HAC-288"],"sessionId":"run1-winnerA-32467-aaaa","ok":true,"ms":3169}
+{"ts":"2026-07-07T05:11:40.103Z","cmd":"claim","args":["claim","HAC-288"],"sessionId":"run1-loserB-32467-bbbb","ok":false,"ms":2719,"error":"claim-lost-race"}

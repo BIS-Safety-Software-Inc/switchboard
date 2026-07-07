@@ -1,0 +1,14 @@
+{
+  "session_id": "subagent-CCCC-3333",
+  "parent_session_id": "orchestrator-DDDD-4444",
+  "transcript_path": "/Users/x/.claude/projects/p/subagent-CCCC-3333.jsonl",
+  "cwd": "/repo/switchboard",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "acceptEdits",
+  "agent_type": "general-purpose",
+  "tool_name": "MultiEdit",
+  "tool_input": {
+    "file_path": "/repo/switchboard/src/payments/charge.js",
+    "edits": [{ "old_string": "a", "new_string": "b" }]
+  }
+}

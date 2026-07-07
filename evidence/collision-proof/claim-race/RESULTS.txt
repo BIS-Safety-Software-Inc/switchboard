@@ -1,0 +1,64 @@
+############################ RUN 1 ############################
+issue HAC-288 (#288) created + promoted to Ready
+--- A(cloneA) exit=0 ---
+    A| worktree: ../switchboard-wt/HAC-288 (branch HAC-288)
+    A| ✔ claimed HAC-288 → Turni Saha · In Progress · files: src/payments/**
+--- B(cloneB) exit=3 ---
+    B| 
+    B| ⚠ claim race lost: HAC-288 is now assigned to ai@bistraining.ca. Backing off.
+>>> ASSERTIONS run 1 (winner=cloneA)
+  ✔ exactly one winner(exit0)+one loser(exit3): A=0 B=3
+  ✔ loser exit code = 3
+  ✔ loser printed back-off ('claim race lost … Backing off')
+  ✔ loser created NO worktree (only its main tree)
+  ✔ winner printed '✔ claimed HAC-288'
+  ✔ winner created worktree (branch HAC-288)
+  ✔ winner worktree present on disk
+  ✔ ownership.json: exactly ONE entry (HAC-288) owned by WINNER session
+  ✔ board: winner=Turni Saha + In Progress (In Progress|Turni Saha)
+RUN 1: PASS
+issue HAC-288 deleted (teardown)
+
+############################ RUN 2 ############################
+issue HAC-289 (#289) created + promoted to Ready
+--- A(cloneA) exit=0 ---
+    A| worktree: ../switchboard-wt/HAC-289 (branch HAC-289)
+    A| ✔ claimed HAC-289 → Turni Saha · In Progress · files: src/payments/**
+--- B(cloneB) exit=3 ---
+    B| 
+    B| ⚠ claim race lost: HAC-289 is now assigned to ai@bistraining.ca. Backing off.
+>>> ASSERTIONS run 2 (winner=cloneA)
+  ✔ exactly one winner(exit0)+one loser(exit3): A=0 B=3
+  ✔ loser exit code = 3
+  ✔ loser printed back-off ('claim race lost … Backing off')
+  ✔ loser created NO worktree (only its main tree)
+  ✔ winner printed '✔ claimed HAC-289'
+  ✔ winner created worktree (branch HAC-289)
+  ✔ winner worktree present on disk
+  ✔ ownership.json: exactly ONE entry (HAC-289) owned by WINNER session
+  ✔ board: winner=Turni Saha + In Progress (In Progress|Turni Saha)
+RUN 2: PASS
+issue HAC-289 deleted (teardown)
+
+############################ RUN 3 ############################
+issue HAC-290 (#290) created + promoted to Ready
+--- A(cloneA) exit=0 ---
+    A| worktree: ../switchboard-wt/HAC-290 (branch HAC-290)
+    A| ✔ claimed HAC-290 → Turni Saha · In Progress · files: src/payments/**
+--- B(cloneB) exit=3 ---
+    B| 
+    B| ⚠ claim race lost: HAC-290 is now assigned to ai@bistraining.ca. Backing off.
+>>> ASSERTIONS run 3 (winner=cloneA)
+  ✔ exactly one winner(exit0)+one loser(exit3): A=0 B=3
+  ✔ loser exit code = 3
+  ✔ loser printed back-off ('claim race lost … Backing off')
+  ✔ loser created NO worktree (only its main tree)
+  ✔ winner printed '✔ claimed HAC-290'
+  ✔ winner created worktree (branch HAC-290)
+  ✔ winner worktree present on disk
+  ✔ ownership.json: exactly ONE entry (HAC-290) owned by WINNER session
+  ✔ board: winner=Turni Saha + In Progress (In Progress|Turni Saha)
+RUN 3: PASS
+issue HAC-290 deleted (teardown)
+
+================ OVERALL: PASS ================

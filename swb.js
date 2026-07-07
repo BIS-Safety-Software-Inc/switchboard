@@ -343,8 +343,7 @@ function fmtTime(d) {
 // viewerName may be a string OR the v2 cache viewer object {name, displayName}.
 function buildDeltaItems(cache, sinceTs, viewerName) {
   const since = sinceTs ? Date.parse(sinceTs) : 0;
-  const you = viewerNameOf(viewerName);
-  const youLc = you.toLowerCase();
+  const meTokens = viewerIdentityTokens(viewerName);
   // Broadened @you matcher: a comment counts as mine if it @-mentions ANY of my
   // handle tokens — displayName, my first name, or my full name — each matched
   // word-boundaried + case-insensitive so short names never substring-promote.
@@ -354,7 +353,9 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
     const t = Date.parse(c.createdAt);
     if (Number.isNaN(t) || t <= since) continue;
     // Suppress the viewer's own comments — you don't need to be told what you said.
-    if (youLc && String(c.author || '').toLowerCase() === youLc) continue;
+    // Match on ANY identity token: Linear authors under the full name ("Turni Saha")
+    // while the digest handle is the displayName ("turni.saha").
+    if (meTokens.includes(String(c.author || '').trim().toLowerCase())) continue;
     const isDiscovery = c.discovery === true;
     const mentioned = bodyMentionsViewer(c.body, viewerName);
     let kind;
@@ -377,7 +378,7 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
     } else if (!Number.isNaN(updated) && updated > since) {
       // A state change / claim shows up as an update. Suppress your OWN claims —
       // an issue now assigned to you is not news you need pushed back at you.
-      if (youLc && String(iss.assignee || '').toLowerCase() === youLc) continue;
+      if (meTokens.includes(String(iss.assignee || '').trim().toLowerCase())) continue;
       items.push({ kind: 'state', ts: updated, key: iss.key, title: iss.title, state: iss.state, assignee: iss.assignee });
     }
   }
@@ -392,6 +393,21 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
 }
 function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function firstWord(s) { return String(s || '').trim().split(/\s+/)[0]; }
+// Full-string identity tokens for self-suppression, lowercased: my displayName
+// AND my full name. Comparing author/assignee against both is what makes
+// "don't echo my own actions" hold when Linear authors under "Turni Saha" but
+// the handle is "turni.saha" (observed live in the coordination-proof runs).
+// First name is deliberately NOT an identity token — full-string equality only.
+function viewerIdentityTokens(viewer) {
+  const out = [];
+  if (viewer && typeof viewer === 'object') {
+    if (viewer.displayName) out.push(String(viewer.displayName).trim().toLowerCase());
+    if (viewer.name) out.push(String(viewer.name).trim().toLowerCase());
+  } else if (viewer) {
+    out.push(String(viewer).trim().toLowerCase());
+  }
+  return out;
+}
 // Accept either a plain name string or the v2 cache viewer object {name, displayName}.
 function viewerNameOf(v) {
   if (!v) return '';
@@ -1159,7 +1175,7 @@ module.exports = {
   // mentions
   matchMember, viewerHandleTokens, mentionRegexesFor, bodyMentionsViewer,
   // digest
-  buildDeltaItems, renderDigest, swbStateName, trunc, fmtTime, claimLine, viewerNameOf, parseIssueKey,
+  buildDeltaItems, renderDigest, swbStateName, trunc, fmtTime, claimLine, viewerNameOf, viewerIdentityTokens, parseIssueKey,
   // recipe
   RecipeError, printRecipe,
   // hook seam

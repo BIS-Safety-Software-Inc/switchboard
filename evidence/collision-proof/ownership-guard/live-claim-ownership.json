@@ -1,0 +1,8 @@
+{
+  "HAC-901": {
+    "files": ["src/payments/**", "src/payments/*"],
+    "assignee": "Turni Saha",
+    "sessionId": "owner-session-AAAA-1111",
+    "ts": "2026-07-07T05:00:00.000Z"
+  }
+}

@@ -1008,3 +1008,23 @@ test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → 
     process.stdout.write('\n===== LIVE @you DIGEST (proof) =====\n' + liveDigestOut + '===== END LIVE DIGEST =====\n');
   }
 });
+
+// Regression: self-suppression must match ALL identity tokens. Linear authors
+// comments under the full name ("Turni Saha") while the digest handle is the
+// displayName ("turni.saha") — a single-token compare failed to suppress in the
+// live coordination-proof runs (evidence/coordination-proof/).
+test('digest: self-suppression matches full name AND displayName (identity tokens)', () => {
+  const viewer = { name: 'Turni Saha', displayName: 'turni.saha' };
+  const cache = {
+    comments: [
+      { issueKey: 'HAC-1', author: 'Turni Saha', body: 'note to self', createdAt: '2026-07-06T12:00:00Z', discovery: true },
+      { issueKey: 'HAC-2', author: 'Dana Lee', body: '@turni.saha q?', createdAt: '2026-07-06T12:00:00Z', discovery: false },
+    ],
+    issues: [
+      { key: 'HAC-3', title: 'mine', state: 'In Progress', assignee: 'Turni Saha', createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T12:00:00Z' },
+    ],
+  };
+  const items = swb.buildDeltaItems(cache, '2026-07-06T00:00:00Z', viewer);
+  const kinds = items.map((i) => `${i.kind}:${i.key || ''}`);
+  assert.deepStrictEqual(kinds, ['you:HAC-2'], `own comment + own claim suppressed, real @you kept: ${JSON.stringify(kinds)}`);
+});

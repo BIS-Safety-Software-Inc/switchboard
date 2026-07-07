@@ -1,0 +1,2 @@
+worktree: ../switchboard-wt/HAC-279 (branch HAC-279)
+✔ claimed HAC-279 → Turni Saha · In Progress · files: lib/schema.js

@@ -1,0 +1,9 @@
+Still blocked on the same permission gate — `node` commands require approval in this session, and it's been denied twice more, so I won't keep retrying.
+
+Status of HAC-280:
+
+- **Code is done.** `consumer.js` implements `findQuizProgress(records, key)`, deriving its key fields from `quiz_progress.key` in `lib/schema.js` at load time. Today that resolves to the single field `user_id`.
+- **Schema re-checked this turn:** `lib/schema.js` still declares `key: ['user_id']`. The HAC-279 composite-key change (`user_id`, `quiz_id`, `attempt_no`) is In Progress but has not landed in this clone. When it does land, the consumer picks up the new key fields automatically; only the fixture data in `consumer.smoke.js` will need composite-key records added.
+- **Verification is the one open item.** The smoke test (`consumer.smoke.js`) exists and covers key-fields-mirror-schema, hit, miss, missing-key-field, and bad-input cases, but every attempt to run `node consumer.smoke.js` is rejected with "requires approval". Per my verify-before-done rule I can't call the ticket complete without it.
+
+To close this out, either approve the `node consumer.smoke.js` command when prompted (or allowlist `Bash(node *)` for this project), or run it yourself — expected output is `smoke OK — key fields: ["user_id"]`.
