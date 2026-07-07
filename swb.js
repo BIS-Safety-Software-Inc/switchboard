@@ -490,7 +490,7 @@ function renderDigest(cache, items, now, ownership) {
   lines.push(`── switchboard · ${fmtTime(now)} · cache ${ageS}s · ${items.length} new ──`);
   for (const it of shown) {
     if (it.kind === 'you') {
-      lines.push(`@you   ${it.key} ${it.author}: "${trunc(it.text, 100)}" → swb show ${it.key}`);
+      lines.push(`@you   ${it.key} ${it.author}: "${trunc(it.text, 300)}" → swb show ${it.key}`); // @you carries the full comment (300) — it is addressed to you
     } else if (it.kind === 'comment') {
       lines.push(`disc   ${trunc(it.text, 90)} (${it.author})`);
     } else if (it.kind === 'state') {

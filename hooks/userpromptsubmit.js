@@ -266,7 +266,7 @@ function buildItems(cache, ownership, viewer, sinceMs) {
     items.push({
       you: true,
       ts: tsMs(c.createdAt),
-      text: `@you   ${pad(c.issueKey || '?', 6)} ${c.author || '?'}: "${trunc(c.body, 100)}" → swb show ${c.issueKey || '?'}`,
+      text: `@you   ${pad(c.issueKey || '?', 6)} ${c.author || '?'}: "${trunc(c.body, 300)}" → swb show ${c.issueKey || '?'}`, // @you = rare + addressed to YOU → full comment (300), not a teaser
     });
   }
 
@@ -453,19 +453,19 @@ async function main() {
     if (hasItems && !r.viaSwb && Array.isArray(r.items)) advanceCursor(sessionId, r.items);
 
     if (hasItems && text.trim()) {
-      // additionalContext goes to the AGENT invisibly; systemMessage is the
-      // one-line receipt the HUMAN sees in their terminal. Without it, users
-      // are told about a digest they can never see (first-user finding) —
-      // the full block stays agent-only, the human gets the count + headline.
+      // additionalContext goes to the AGENT invisibly; systemMessage is what the
+      // HUMAN sees. Owner call (2026-07-07): humans see the WHOLE digest, every
+      // line on a solid bright-yellow block (coach-style) — not a truncated
+      // one-liner. Each line gets its own ANSI 103/30 wrap + padding so the
+      // block renders solid.
       const itemLines = text.split('\n').filter((l) => /^(@you|claim|state|disc|new)\s/.test(l));
-      const headline = itemLines.length
-        ? `${itemLines.length} board update${itemLines.length === 1 ? '' : 's'} · ${trunc(itemLines[0].replace(/\s+/g, ' '), 70)}`
-        : 'board update';
-      // Bright-yellow background + black text (ANSI 103/30) so the receipt is
-      // unmissable in the terminal — same in-terminal rendering trick the coach
-      // project validated for systemMessage.
+      const count = itemLines.length || 1;
+      const head = `switchboard: ${count} board update${count === 1 ? '' : 's'}`;
+      const blockLines = [head, ...text.split('\n').filter((l) => l.trim())];
+      const width = Math.max(...blockLines.map((l) => l.length), 40);
+      const paint = (l) => `\u001b[103;30m ${l.padEnd(width)} \u001b[0m`;
       process.stdout.write(JSON.stringify({
-        systemMessage: `\u001b[103;30m switchboard: ${headline} — full digest delivered to your agent \u001b[0m`,
+        systemMessage: blockLines.map(paint).join('\n'),
         hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text },
       }));
     }

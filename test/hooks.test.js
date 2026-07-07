@@ -102,12 +102,14 @@ test('userpromptsubmit: emits UserPromptSubmit additionalContext on non-empty de
     // human-visible one-line receipt (users otherwise never see the digest);
     // additionalContext is the agent-only full block.
     assert.deepStrictEqual(Object.keys(parsed), ['systemMessage', 'hookSpecificOutput']);
-    // The receipt is wrapped in ANSI bright-yellow-bg codes (rendered by the
-    // terminal, invisible to the agent). Strip them before asserting content.
-    const receipt = parsed.systemMessage.replace(/\u001b\[[0-9;]*m/g, '').trim();
-    assert.match(receipt, /^switchboard: \d+ board updates? · /, 'human receipt: count + headline');
-    assert.match(receipt, /full digest delivered to your agent$/);
-    assert.ok(parsed.systemMessage.includes('\u001b[103;30m'), 'bright-yellow background code present');
+    // The human-visible block: EVERY digest line painted solid yellow (ANSI
+    // 103/30 per line), full content — no truncated teaser (owner call).
+    const receiptLines = parsed.systemMessage.split('\n');
+    assert.ok(receiptLines.every((l) => l.includes('\u001b[103;30m') && l.includes('\u001b[0m')), 'every line painted yellow');
+    const stripped = parsed.systemMessage.replace(/\u001b\[[0-9;]*m/g, '');
+    assert.match(stripped, /switchboard: \d+ board updates?/, 'count headline');
+    assert.ok(stripped.includes('@you'), 'full digest content visible to the human');
+    assert.ok(stripped.includes('act    if any item above touches'), 'act line included');
     assert.strictEqual(parsed.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
     assert.deepStrictEqual(Object.keys(parsed.hookSpecificOutput), ['hookEventName', 'additionalContext']);
     const ctx = parsed.hookSpecificOutput.additionalContext;
