@@ -504,14 +504,15 @@ disc   auth middleware strips X-Custom headers <span class="dim">(Dana)</span>
   <section id="lifecycle">
     <div class="sec-head"><span class="sec-no">05</span><h2>Ticket lifecycle</h2></div>
     <p class="sec-sub">Entry and exit are human gates; everything between is agent-driven.</p>
+    <p class="note"><b>Vocabulary:</b> your Linear board shows two of these states under different names — <b>Triage appears as the "Backlog" group</b> and <b>Ready appears as "Todo"</b> (In&nbsp;Progress / In&nbsp;Review / Done match). When swb or your agent says "it's in Triage," look in Backlog.</p>
     <div class="tblwrap">
       <table>
-        <tr><th>State</th><th>Enters via</th><th>Who</th></tr>
-        <tr><td><code>Triage</code></td><td><code>swb new</code></td><td>Anyone / any agent</td></tr>
-        <tr><td><code>Ready</code></td><td>Human promotes (needs template: acceptance criteria, files to touch, files NOT to touch, blocked-by)</td><td><b>Human gate</b> (PM)</td></tr>
-        <tr><td><code>In Progress</code></td><td><code>swb claim</code></td><td>Agent (dev sees it)</td></tr>
-        <tr><td><code>In Review</code></td><td><code>swb done</code> — refuses without green tests + <code>--pr</code></td><td>Agent, gated by tests</td></tr>
-        <tr><td><code>Done</code></td><td>Human merges the PR</td><td><b>Human gate</b></td></tr>
+        <tr><th>State</th><th>On your Linear board</th><th>Enters via</th><th>Who</th></tr>
+        <tr><td><code>Triage</code></td><td>Backlog</td><td><code>swb new</code></td><td>Anyone / any agent</td></tr>
+        <tr><td><code>Ready</code></td><td>Todo</td><td>Human promotes (needs template: acceptance criteria, files to touch, files NOT to touch, blocked-by)</td><td><b>Human gate</b> (PM)</td></tr>
+        <tr><td><code>In Progress</code></td><td>In Progress</td><td><code>swb claim</code></td><td>Agent (dev sees it)</td></tr>
+        <tr><td><code>In Review</code></td><td>In Review</td><td><code>swb done</code> — refuses without green tests + <code>--pr</code></td><td>Agent, gated by tests</td></tr>
+        <tr><td><code>Done</code></td><td>Done</td><td>Human merges the PR</td><td><b>Human gate</b></td></tr>
       </table>
     </div>
     <ul class="tight">

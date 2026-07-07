@@ -360,11 +360,7 @@ function installShim(home) {
     const contents = `@echo off\r\nnode "${swbTarget}" %*\r\n`;
     fs.writeFileSync(cmdPath, contents);
     ok(`shim at ${cmdPath}`);
-    if (!onPath(binDir)) {
-      warn(`${binDir} is not on PATH. Add it in PowerShell (persists across sessions):`);
-      console.log(`    [Environment]::SetEnvironmentVariable("Path", "$env:Path;${binDir}", "User")`);
-      console.log('    # then open a new PowerShell window');
-    }
+    if (!onPath(binDir)) addToUserPathWindows(binDir);
     return cmdPath;
   }
 
@@ -373,11 +369,62 @@ function installShim(home) {
   fs.writeFileSync(shimPath, contents);
   try { fs.chmodSync(shimPath, 0o755); } catch (_) { /* best-effort */ }
   ok(`shim at ${shimPath}`);
-  if (!onPath(binDir)) {
-    warn(`${binDir} is not on PATH. Add it to your shell profile:`);
+  if (!onPath(binDir)) addToPathUnix(binDir);
+  return shimPath;
+}
+
+// Persistently add binDir to the USER-scope PATH on Windows — automatic, so no
+// one has to paste registry commands (first Windows install stalled exactly here).
+// Reads/writes ONLY the User Path (never System), is idempotent, and NEVER uses
+// setx (setx re-saves a merged+truncated 1024-char PATH — actively destructive).
+function addToUserPathWindows(binDir) {
+  const script =
+    `$d='${binDir.replace(/'/g, "''")}'; ` +
+    `$p=[Environment]::GetEnvironmentVariable('Path','User'); if($null -eq $p){$p=''}; ` +
+    `if(-not (($p -split ';') -contains $d)){ ` +
+    `[Environment]::SetEnvironmentVariable('Path', (($p.TrimEnd(';') + ';' + $d).TrimStart(';')), 'User'); ` +
+    `Write-Output 'ADDED' } else { Write-Output 'PRESENT' }`;
+  try {
+    const r = cp.spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
+      encoding: 'utf8', timeout: 15000,
+    });
+    const verdict = (r.stdout || '').trim();
+    if (r.status === 0 && verdict === 'ADDED') {
+      ok(`added ${binDir} to your user PATH — takes effect in NEW terminals (this one won't see it yet)`);
+      return;
+    }
+    if (r.status === 0 && verdict === 'PRESENT') {
+      info(`${binDir} already in your user PATH — open a new terminal if 'swb' doesn't resolve here.`);
+      return;
+    }
+    throw new Error((r.stderr || '').trim() || `powershell exited ${r.status}`);
+  } catch (err) {
+    warn(`could not update PATH automatically (${err.message}). Add it yourself in PowerShell:`);
+    console.log(`    [Environment]::SetEnvironmentVariable("Path", ([Environment]::GetEnvironmentVariable("Path","User") + ";${binDir}"), "User")`);
+    console.log('    # then open a new PowerShell window');
+  }
+}
+
+// Persistently add binDir to PATH on macOS/Linux by appending one guarded line
+// to the user's shell profile (zsh → ~/.zshrc, bash → ~/.bashrc, else ~/.profile).
+// Idempotent: skips if the profile already exports it.
+function addToPathUnix(binDir) {
+  const shell = process.env.SHELL || '';
+  const profile = shell.includes('zsh') ? '.zshrc' : shell.includes('bash') ? '.bashrc' : '.profile';
+  const profilePath = path.join(resolveHome(), profile);
+  const line = 'export PATH="$HOME/.local/bin:$PATH" # added by switchboard installer';
+  try {
+    const current = fs.existsSync(profilePath) ? fs.readFileSync(profilePath, 'utf8') : '';
+    if (current.includes('.local/bin')) {
+      info(`${profilePath} already puts ~/.local/bin on PATH — open a new terminal if 'swb' doesn't resolve here.`);
+      return;
+    }
+    fs.appendFileSync(profilePath, `\n${line}\n`);
+    ok(`added ~/.local/bin to PATH via ${profilePath} — takes effect in NEW terminals`);
+  } catch (err) {
+    warn(`could not update ${profilePath} automatically (${err.message}). Add it yourself:`);
     console.log(`    export PATH="$HOME/.local/bin:$PATH"`);
   }
-  return shimPath;
 }
 
 function onPath(dir) {

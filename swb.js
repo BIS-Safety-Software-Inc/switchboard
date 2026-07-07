@@ -885,12 +885,17 @@ async function verbNew(ctx) {
     const { stateId, teamId } = await getStateIdByName(teamKey, 'Triage', apiKey);
     const m = `mutation($teamId: String!, $title: String!, $desc: String, $stateId: String!) {
       issueCreate(input: { teamId: $teamId, title: $title, description: $desc, stateId: $stateId }) {
-        success issue { id identifier state { name } } } }`;
+        success issue { id identifier url state { name } } } }`;
     const desc = typeof args.body === 'string' ? args.body : null;
     const d = await linear(m, { teamId, title, desc, stateId }, apiKey);
     if (!d.issueCreate || !d.issueCreate.success) throw new Error('issueCreate failed');
     const iss = d.issueCreate.issue;
-    out.write(`✔ created ${iss.identifier} "${trunc(title, 60)}" [Triage]\n`);
+    // Say it in the USER's vocabulary too: swb's "Triage" renders as the
+    // "${STATE_MAP.Triage}" group in the Linear UI — first-install users looked
+    // for a group literally named Triage and couldn't find it. And print the
+    // URL: "open Linear and find it" is a scavenger hunt; a link is not.
+    out.write(`✔ created ${iss.identifier} "${trunc(title, 60)}" [Triage — the "${STATE_MAP.Triage}" group in Linear]\n`);
+    if (iss.url) out.write(`  ${iss.url}\n`);
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;

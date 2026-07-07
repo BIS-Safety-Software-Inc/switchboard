@@ -85,7 +85,7 @@ const H = {
   issueById: (issue) => ({ match: (q) => has(q, 'issue(id:'), reply: { issue } }),
   issueCreate: (capture) => ({
     match: (q) => has(q, 'issueCreate'),
-    reply: (q, v) => { if (capture) capture(v); return { issueCreate: { success: true, issue: { id: 'i-new', identifier: 'HAC-99', state: { name: 'Backlog' } } } }; },
+    reply: (q, v) => { if (capture) capture(v); return { issueCreate: { success: true, issue: { id: 'i-new', identifier: 'HAC-99', url: 'https://linear.app/bis-agents/issue/HAC-99/x', state: { name: 'Backlog' } } } }; },
   }),
 };
 
@@ -578,7 +578,8 @@ test('new: always lands in Triage (Backlog stateId sent) (exit 0)', async () => 
     ]);
     const { code, out } = await runVerb(['new', 'Fix the auth header bug', '--body', 'details here'], { home, cwd });
     assert.strictEqual(code, 0, out);
-    assert.match(out, /\[Triage\]/);
+    assert.match(out, /\[Triage — the "Backlog" group in Linear\]/, 'creation names BOTH vocabularies');
+    assert.match(out, /https:\/\/linear\.app\//, 'creation prints the clickable issue URL');
     // must send the Backlog (Triage) state id, never Ready/Todo
     assert.strictEqual(sentVars.stateId, 'st-backlog', 'new must target Triage → Backlog state');
     assert.strictEqual(sentVars.title, 'Fix the auth header bug');
