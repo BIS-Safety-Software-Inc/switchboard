@@ -453,7 +453,16 @@ async function main() {
     if (hasItems && !r.viaSwb && Array.isArray(r.items)) advanceCursor(sessionId, r.items);
 
     if (hasItems && text.trim()) {
+      // additionalContext goes to the AGENT invisibly; systemMessage is the
+      // one-line receipt the HUMAN sees in their terminal. Without it, users
+      // are told about a digest they can never see (first-user finding) —
+      // the full block stays agent-only, the human gets the count + headline.
+      const itemLines = text.split('\n').filter((l) => /^(@you|claim|state|disc|new)\s/.test(l));
+      const headline = itemLines.length
+        ? `${itemLines.length} board update${itemLines.length === 1 ? '' : 's'} · ${trunc(itemLines[0].replace(/\s+/g, ' '), 70)}`
+        : 'board update';
       process.stdout.write(JSON.stringify({
+        systemMessage: `switchboard: ${headline} — full digest delivered to your agent`,
         hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text },
       }));
     }

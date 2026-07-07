@@ -98,8 +98,12 @@ test('userpromptsubmit: emits UserPromptSubmit additionalContext on non-empty de
     assert.strictEqual(r.status, 0, 'exit 0');
     assert.ok(r.out.length > 0, 'produced output');
     const parsed = JSON.parse(r.out);
-    // envelope contract — the shape this hook owns:
-    assert.deepStrictEqual(Object.keys(parsed), ['hookSpecificOutput']);
+    // envelope contract — the shape this hook owns. systemMessage is the
+    // human-visible one-line receipt (users otherwise never see the digest);
+    // additionalContext is the agent-only full block.
+    assert.deepStrictEqual(Object.keys(parsed), ['systemMessage', 'hookSpecificOutput']);
+    assert.match(parsed.systemMessage, /^switchboard: \d+ board updates? · /, 'human receipt: count + headline');
+    assert.match(parsed.systemMessage, /full digest delivered to your agent$/);
     assert.strictEqual(parsed.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
     assert.deepStrictEqual(Object.keys(parsed.hookSpecificOutput), ['hookEventName', 'additionalContext']);
     const ctx = parsed.hookSpecificOutput.additionalContext;
