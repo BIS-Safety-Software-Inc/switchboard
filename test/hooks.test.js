@@ -128,7 +128,16 @@ test('userpromptsubmit reference engine: EXACT digest content per CONTRACTS.md',
   assert.ok(lines.includes('claim  HAC-23 Quiz progress schema → sarah   files: src/schema/**,db/migrations/*.sql'),
     'foreign claim (sarah) surfaces with real issue key');
   assert.ok(!lines.some(l => l.startsWith('claim  HAC-31')), 'my own claim (marc) suppressed');
-  assert.ok(lines.includes('state  HAC-31 → In Progress'), 'state change');
+  // Own-assignee state moves are suppressed (same rule as own claims/comments —
+  // fixed 2026-07-07 after the live tour showed your own claim echoing back).
+  assert.ok(!lines.some(l => l.startsWith('state  HAC-31')), 'my own state change suppressed');
+  // A FOREIGN state change still surfaces: bump sarah's HAC-23 past the cursor.
+  const cache2 = JSON.parse(JSON.stringify(cache));
+  const h23 = cache2.issues.find(i => i.key === 'HAC-23');
+  h23.updatedAt = '2026-07-06T14:21:00.000Z';
+  h23.stateChangedAt = '2026-07-06T14:21:00.000Z';
+  const lines2 = engine.buildItems(cache2, ownership, 'marc', since).map(i => i.text);
+  assert.ok(lines2.includes('state  HAC-23 → In Progress'), 'foreign state change surfaces');
   assert.ok(lines.includes('disc   auth middleware strips X-Custom headers (dana)'), 'discovery');
   assert.ok(lines.includes('new    HAC-40 New triage ticket about auth headers [Triage]'), 'new triage');
   // full render round-trips the exact block shape

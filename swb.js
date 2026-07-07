@@ -15,6 +15,9 @@ const LINEAR_URL = 'https://api.linear.app/graphql';
 const CALL_TIMEOUT_MS = 5000;
 const CACHE_STALE_MS = 45000;
 const CLAIM_VERIFY_DELAY_MS = 1500;
+// A session's FIRST digest (no cursor yet) looks back this far, not to epoch —
+// otherwise every fresh session replays the board's entire history (seen live).
+const FIRST_LOOK_WINDOW_MS = 30 * 60 * 1000;
 
 // swb state name -> Linear workflow state name
 const STATE_MAP = {
@@ -622,7 +625,8 @@ async function verbSync(ctx) {
     return { code: 0 };
   }
   const cursor = readCursor(sessionId);
-  const items = buildDeltaItems(cache, cursor.lastSeenTs, viewerNameOf(viewer) || (cache && cache.viewer));
+  const sinceTs = cursor.lastSeenTs || new Date(now.getTime() - FIRST_LOOK_WINDOW_MS).toISOString();
+  const items = buildDeltaItems(cache, sinceTs, viewer || (cache && cache.viewer));
   const digest = renderDigest(cache, items, now, readOwnership());
   // advance cursor to newest item ts (or now) so we don't repeat
   const newest = items.length ? new Date(Math.max(...items.map((i) => i.ts))).toISOString() : cursor.lastSeenTs;
@@ -1190,10 +1194,13 @@ function hookDigest(opts) {
   try {
     const cache = readCache();
     if (!cache) return { text: '', hasItems: false, wroteCursor: false };
-    // cache.viewer is the v2 object {name, displayName}; normalize to a name string.
-    const viewerName = o.viewerName || viewerNameOf(cache && cache.viewer) || process.env.SWB_VIEWER || '';
+    // cache.viewer is the v2 object {name, displayName} — pass the WHOLE identity
+    // through so self-suppression can match both the handle and the full name.
+    const viewerName = o.viewerName || (cache && cache.viewer) || process.env.SWB_VIEWER || '';
     const cursor = readCursor(sessionId);
-    const items = buildDeltaItems(cache, cursor.lastSeenTs, viewerName);
+    const hdNow = o.now ? new Date(o.now).getTime() : Date.now();
+    const hdSince = cursor.lastSeenTs || new Date(hdNow - FIRST_LOOK_WINDOW_MS).toISOString();
+    const items = buildDeltaItems(cache, hdSince, viewerName);
     const text = renderDigest(cache, items, now, readOwnership());
     let wroteCursor = false;
     if (items.length) {

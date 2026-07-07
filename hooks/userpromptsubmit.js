@@ -294,6 +294,7 @@ function buildItems(cache, ownership, viewer, sinceMs) {
     if (tsMs(changedAt) <= sinceMs) continue;
     if (tsMs(it.createdAt) > sinceMs) continue; // brand-new issues surface as `new`
     if (!it.state) continue;
+    if (isMe(it.assignee)) continue; // your own claim/state moves are not news to you
     items.push({
       you: false,
       ts: tsMs(changedAt),
@@ -368,7 +369,10 @@ function computeDigestInline(sessionId, cwd) {
   const ownership = readJsonSafe(ownershipPath());
   const cursor = readJsonSafe(cursorPath(sessionId)) || {};
   const viewer = (cache && cache.viewer) || process.env.SWB_VIEWER || '';
-  const sinceMs = tsMs(cursor.lastSeenTs); // 0 (epoch) when no cursor → surface all
+  // First look (no cursor yet) starts 30 min back — a fresh session must not
+  // replay the board's entire history (observed live: day-old test discoveries).
+  const FIRST_LOOK_WINDOW_MS = 30 * 60 * 1000;
+  const sinceMs = cursor.lastSeenTs ? tsMs(cursor.lastSeenTs) : Date.now() - FIRST_LOOK_WINDOW_MS;
   const items = buildItems(cache, ownership, viewer, sinceMs);
   const text = renderDigest(cache, items);
   return { text: text || '', hasItems: !!text, cache, items, viewer };
