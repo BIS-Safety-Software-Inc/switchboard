@@ -860,6 +860,28 @@ async function verbNew(ctx) {
   }
 }
 
+// List the team's active members: @handle + full name. Read-only. Exists so a
+// human (or the /swb-tour guide) can resolve "Pat" to the exact Linear identity
+// ("Patrick Hohol" / @pat.hohol) that digest lines and @you matching key off.
+async function verbMembers(ctx) {
+  const { teamKey, apiKey, out } = ctx;
+  try {
+    const members = await getTeamMembers(teamKey, apiKey);
+    if (!members.length) { out.write(`no active members found on team ${teamKey}\n`); return { code: 0 }; }
+    const pad = Math.max(...members.map((m) => String(m.displayName || '').length)) + 2;
+    out.write(`team ${teamKey} — ${members.length} members (@handle → full name):\n`);
+    for (const m of members) {
+      out.write(`  @${String(m.displayName || '').padEnd(pad)} ${m.name || ''}\n`);
+    }
+    return { code: 0 };
+  } catch (err) {
+    if (err instanceof RecipeError) throw err;
+    throw new RecipeError('could not list team members', [
+      `Open Linear → your team ${teamKey} → Members to read the list by hand.`,
+    ], err.message);
+  }
+}
+
 async function verbShow(ctx) {
   const { teamKey, apiKey, args, out } = ctx;
   const key = args._[1];
@@ -1027,7 +1049,7 @@ function parseArgs(argv) {
 }
 
 // Dispatch
-const READ_VERBS = new Set(['sync', 'show', 'doctor']);
+const READ_VERBS = new Set(['sync', 'show', 'doctor', 'members']);
 
 async function run(argv, options) {
   const opts = options || {};
@@ -1063,7 +1085,7 @@ async function run(argv, options) {
   const ctx = { teamKey, apiKey, args, sessionId, hook: !!args.hook, out, now, cwd, repo, claimDelayMs: opts.claimDelayMs };
   const verbs = {
     sync: verbSync, claim: verbClaim, done: verbDone, ask: verbAsk,
-    discover: verbDiscover, new: verbNew, show: verbShow, release: verbRelease, doctor: verbDoctor,
+    discover: verbDiscover, new: verbNew, show: verbShow, release: verbRelease, doctor: verbDoctor, members: verbMembers,
   };
   const fn = verbs[cmd];
   if (!fn) {
@@ -1102,6 +1124,7 @@ function usage() {
     '  swb discover "<text>"',
     '  swb new "<title>" [--body "<b>"]',
     '  swb show <KEY>',
+    '  swb members',
     '  swb release <KEY>',
     '  swb doctor [--fix]',
     '',
@@ -1181,5 +1204,5 @@ module.exports = {
   // hook seam
   hookDigest, refetchIfStale,
   // verbs (for direct unit testing)
-  verbSync, verbClaim, verbDone, verbAsk, verbDiscover, verbNew, verbShow, verbRelease, verbDoctor,
+  verbSync, verbClaim, verbDone, verbAsk, verbDiscover, verbNew, verbShow, verbRelease, verbDoctor, verbMembers,
 };

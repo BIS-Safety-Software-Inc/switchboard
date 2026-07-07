@@ -1028,3 +1028,25 @@ test('digest: self-suppression matches full name AND displayName (identity token
   const kinds = items.map((i) => `${i.kind}:${i.key || ''}`);
   assert.deepStrictEqual(kinds, ['you:HAC-2'], `own comment + own claim suppressed, real @you kept: ${JSON.stringify(kinds)}`);
 });
+
+// `swb members` — the tour's buddy-resolution verb: @handle → full name, read-only.
+test('members: lists active team members with handle and full name', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();
+  try {
+    await withEnv(home, null, async () => {
+      installFetch([
+        teamMembers([
+          { id: 'u1', name: 'Patrick Hohol', displayName: 'pat.hohol', active: true },
+          { id: 'u2', name: 'Gone Person', displayName: 'gone', active: false },
+          { id: 'u3', name: 'Turni Saha', displayName: 'turni.saha', active: true },
+        ]),
+      ]);
+      const { code, out } = await runVerb(['members'], { home, cwd });
+      assert.strictEqual(code, 0, out);
+      assert.match(out, /@pat\.hohol\s+Patrick Hohol/, 'handle → full name row');
+      assert.match(out, /@turni\.saha\s+Turni Saha/);
+      assert.ok(!out.includes('Gone Person'), 'inactive members excluded');
+    });
+  } finally { rm(home); rm(cwd); }
+});
