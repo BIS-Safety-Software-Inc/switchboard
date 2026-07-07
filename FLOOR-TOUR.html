@@ -132,7 +132,14 @@
     <tr><td>The digest nudges</td><td>A freshly-promoted ticket shows up in the report your agent gets with your next message. The agent doesn't act on it alone — it <em>suggests</em>: "HAC-31 just hit Todo and touches my files — want me to claim it?" You say yes. The nudge is information arriving; the claim is still your call.</td></tr>
   </table></div>
   <div class="warnbox"><b>Gate 2, honestly: if you run with permissions skipped, this gate does not exist.</b> On paper, Gate 2 is your terminal asking "Claude wants to run: swb claim…" and you approving. In practice most devs run <code>--dangerously-skip-permissions</code> or broad allowlists — so the claim happens without a human seeing a prompt. What remains is <b>after-the-fact visibility</b>: the claim instantly appears on the board (assignee + <code>claude</code> chip + signed comment) and in every teammate's next digest. The team sees everything; nobody was asked first.</div>
-  <p class="chips"><span class="dial">DIAL</span> Your team's choice, eyes open: (a) require approval prompts for <code>swb</code> writes — real Gate 2, slower; (b) run skipped and treat board visibility as the gate — de-facto autonomous claiming, which is honestly most teams' reality; (c) somewhere between (prompts only for <code>claim</code>/<code>done</code>). Decide it Friday, write it down.</p>
+  <p class="chips"><span class="dial">DIAL</span> Your team's choice, eyes open — and note the catch: <b>the skip-permissions flag is a master switch; there is no "skip, except claims."</b></p>
+  <div class="tablewrap"><table>
+    <tr><th>Option</th><th>How you run</th><th>What it feels like</th></tr>
+    <tr><td><b>(b) no gate</b></td><td>Keep <code>--dangerously-skip-permissions</code></td><td>Zero prompts all day. Oversight = watching the board (chip + signed comment + everyone's digest). Most teams' honest reality.</td></tr>
+    <tr><td><b>(c) two prompts that matter</b></td><td>DROP the flag; put this in the repo's <code>.claude/settings.json</code>:<br><code>"permissions": { "allow": ["Bash(*)", "Edit(*)", "Write(*)"], "ask": ["Bash(swb claim*)", "Bash(swb done*)"] }</code></td><td>Same frictionless day (ask outranks allow, so the broad allow kills the popup spam) — but taking work and finishing work still ask a human first.</td></tr>
+    <tr><td><b>(a) full gate</b></td><td>Drop the flag, no broad allows</td><td>Popup on everything. Real prior approval — and by 2pm you're clicking yes without reading. Nobody actually lives here.</td></tr>
+  </table></div>
+  <p class="chips">Decide it Friday, write it in your AGENTS.md. Recommendation: (c) — it keeps the two board-shaping decisions human without the spam that drives everyone to (b).</p>
 </section>
 
 <section class="step" data-title="6 · Building">
