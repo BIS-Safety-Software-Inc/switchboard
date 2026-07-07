@@ -132,14 +132,9 @@
     <tr><td>The digest nudges</td><td>A freshly-promoted ticket shows up in the report your agent gets with your next message. The agent doesn't act on it alone — it <em>suggests</em>: "HAC-31 just hit Todo and touches my files — want me to claim it?" You say yes. The nudge is information arriving; the claim is still your call.</td></tr>
   </table></div>
   <div class="warnbox"><b>Gate 2, honestly: if you run with permissions skipped, this gate does not exist.</b> On paper, Gate 2 is your terminal asking "Claude wants to run: swb claim…" and you approving. In practice most devs run <code>--dangerously-skip-permissions</code> or broad allowlists — so the claim happens without a human seeing a prompt. What remains is <b>after-the-fact visibility</b>: the claim instantly appears on the board (assignee + <code>claude</code> chip + signed comment) and in every teammate's next digest. The team sees everything; nobody was asked first.</div>
-  <p class="chips"><span class="dial">DIAL</span> Your team's choice, eyes open — and note the catch: <b>the skip-permissions flag is a master switch; there is no "skip, except claims."</b></p>
-  <div class="tablewrap"><table>
-    <tr><th>Option</th><th>How you run</th><th>What it feels like</th></tr>
-    <tr><td><b>(b) no gate</b></td><td>Keep <code>--dangerously-skip-permissions</code></td><td>Zero prompts all day. Oversight = watching the board (chip + signed comment + everyone's digest). Most teams' honest reality.</td></tr>
-    <tr><td><b>(c) two prompts that matter</b></td><td>DROP the flag; put this in the repo's <code>.claude/settings.json</code>:<br><code>"permissions": { "allow": ["Bash(*)", "Edit(*)", "Write(*)"], "ask": ["Bash(swb claim*)", "Bash(swb done*)"] }</code></td><td>Same frictionless day (ask outranks allow, so the broad allow kills the popup spam) — but taking work and finishing work still ask a human first.</td></tr>
-    <tr><td><b>(a) full gate</b></td><td>Drop the flag, no broad allows</td><td>Popup on everything. Real prior approval — and by 2pm you're clicking yes without reading. Nobody actually lives here.</td></tr>
-  </table></div>
-  <p class="chips">Decide it Friday, write it in your AGENTS.md. Recommendation: (c) — it keeps the two board-shaping decisions human without the spam that drives everyone to (b).</p>
+  <div class="okbox"><b>Gate 2 is built into the kit — and it survives <code>--dangerously-skip-permissions</code>.</b> The flag turns off Claude Code's permission popups, but Switchboard's gate lives in a hook, and hooks always fire. When an agent tries <code>swb claim</code> or <code>swb done</code>, the command is <b>denied</b> with an instruction: <em>ask your human in the conversation; when they say yes, re-run with <code>--approved</code></em>. So the "prompt" isn't a popup — it's your agent literally asking you in chat: "want me to claim HAC-31?" You say yes. That exchange IS Gate 2, and no flag removes it.</div>
+  <p><b>Honest fine print:</b> the handshake trusts the agent to actually ask before adding <code>--approved</code>. A misbehaving agent could lie — but the flag is logged and the ticket comment says "human-approved," so a lie is on the record forever. This is agent-grade trust, same as everything else agents do.</p>
+  <p class="chips"><span class="dial">DIAL</span> Teams that WANT autonomous claiming (finish → grab next, nobody asked) set <code>"gate2": "off"</code> in the repo's <code>.swb.json</code>. One line, decided Friday, out loud — that single line is the difference between human-assigned work and a self-serve swarm.</p>
 </section>
 
 <section class="step" data-title="6 · Building">
@@ -200,7 +195,7 @@
   <div class="tablewrap"><table>
     <tr><th>Issue</th><th>The honest situation</th><th>Your decision</th></tr>
     <tr><td><b>Proposer bias</b></td><td>Whoever proposed a Backlog ticket usually claims it after promotion — agent-chosen work with one human click between. Often fine (they have context), quietly risky (8 private backlogs).</td><td>We have no fix. Options: sweeper assigns at promote time · planning-day tickets are team-written · or accept it and watch the board. Decide Friday.</td></tr>
-    <tr><td><b>Gate 2 under skip-permissions</b></td><td>Approval prompts don't exist for most devs; claiming is de-facto autonomous with after-the-fact visibility.</td><td>Pick your posture (step 5) and say it out loud so it's a decision, not drift.</td></tr>
+    <tr><td><b>Gate 2 under skip-permissions</b></td><td>SOLVED at the hook layer: claim/done are denied until the agent gets your yes in chat and re-runs with <code>--approved</code> — works regardless of permission flags. Residual trust: an agent could lie about having asked (logged + visible on the ticket).</td><td>Keep it on (default), or set <code>"gate2": "off"</code> in .swb.json for autonomous claiming. Friday decision.</td></tr>
     <tr><td><b>Idle blindness</b></td><td>No push while a terminal is idle; questions wait for your next prompt.</td><td>Accept for build day (people prompt constantly)? Or add a team habit: prompt your agent when you sit back down.</td></tr>
     <tr><td><b>WIP is a rule, not code</b></td><td>Nothing enforces one-claim-per-person except visibility.</td><td>Keep as norm, or drop, or make the captain police it.</td></tr>
     <tr><td><b>Codex users</b></td><td>Two ways to run Codex. <b>Through Claude Code's <code>/codex</code> plugin (recommended):</b> Claude Code stays the shell, Codex does the work inside it — you get the FULL experience (digest, yellow block, guard), nothing degraded. <b>Bare <code>codex</code> CLI as your whole terminal:</b> no hooks exist there — degraded mode, your agent runs <code>swb sync</code> at task start (it's in the AGENTS template).</td><td>Default Codex seats to the <code>/codex</code>-inside-Claude-Code setup; bare-CLI is the fallback for those who insist.</td></tr>
@@ -224,7 +219,7 @@
   <h2>What your team decides (write it in your AGENTS.md)</h2>
   <ol>
     <li><b>Who owns the Backlog sweep</b>, and on what cadence? <span class="must">MUST</span></li>
-    <li>Gate 2 posture: prompts on swb writes / skip + board visibility / hybrid?</li>
+    <li>Gate 2: keep the built-in ask-in-chat gate (default), or <code>"gate2": "off"</code> for autonomous claiming?</li>
     <li>WIP limit: keep one-claim-per-person?</li>
     <li>Who reviews PRs (Gate 3), and how fast?</li>
     <li>Proposer bias: sweeper assigns, or laissez-faire?</li>
