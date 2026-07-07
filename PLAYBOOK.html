@@ -416,7 +416,7 @@
         <div class="col-head">MUSTs <span class="tag">locked · in the tool</span></div>
         <ul class="rule-list">
           <li><b>Claim before you edit.</b><span class="why">One <code>swb claim &lt;KEY&gt; --files &lt;globs&gt;</code> assigns you, moves the ticket to In Progress, cuts a worktree, and declares your files. No claim = no coordinated edit.</span></li>
-          <li><b>Triage gate.</b><span class="why"><code>swb new</code> always lands in <strong>Triage</strong>. Agents cannot create Ready work — only a human promotes Triage → Ready.</span></li>
+          <li><b>Backlog gate.</b><span class="why"><code>swb new</code> always lands in <strong>Backlog</strong>. Agents cannot create Todo work — only a human promotes Backlog → Todo.</span></li>
           <li><b>Done gate.</b><span class="why"><code>swb done</code> runs your test command first and <em>refuses</em> on non-zero, then requires <code>--pr &lt;url&gt;</code> before it moves the ticket to In Review. No green tests + PR, no done.</span></li>
           <li><b>Signed writes.</b><span class="why">Every comment ends <code>🤖 Claude — via &lt;you&gt; · swb v1.0.0</code>. The human is always the assignee and stays accountable.</span></li>
           <li><b>One claim per dev (WIP = 1).</b><span class="why">Hold one ticket at a time. Finish or <code>swb release</code> before claiming the next — this keeps the review queue from becoming the bottleneck.</span></li>
@@ -462,7 +462,7 @@
       <div class="role">
         <div class="rh"><span class="badge">PM</span><h4>Product</h4></div>
         <p class="lede-line">Owns the gates and the watchtower.</p>
-        <p>You promote Triage → Ready, cut scope, and are the one human whose digest is the <em>whole board</em>: aging unanswered asks, stuck tickets, burn-down. Your Claude works <strong>on</strong> the board, not <strong>in</strong> the repo. You run the hourly integration smoke.</p>
+        <p>You promote Backlog → Todo, cut scope, and are the one human whose digest is the <em>whole board</em>: aging unanswered asks, stuck tickets, burn-down. Your Claude works <strong>on</strong> the board, not <strong>in</strong> the repo. You run the hourly integration smoke.</p>
       </div>
     </div>
   </section>
@@ -504,12 +504,12 @@ disc   auth middleware strips X-Custom headers <span class="dim">(Dana)</span>
   <section id="lifecycle">
     <div class="sec-head"><span class="sec-no">05</span><h2>Ticket lifecycle</h2></div>
     <p class="sec-sub">Entry and exit are human gates; everything between is agent-driven.</p>
-    <p class="note"><b>Vocabulary:</b> your Linear board shows two of these states under different names — <b>Triage appears as the "Backlog" group</b> and <b>Ready appears as "Todo"</b> (In&nbsp;Progress / In&nbsp;Review / Done match). When swb or your agent says "it's in Triage," look in Backlog.</p>
+    <p class="note"><b>Vocabulary:</b> the kit speaks Linear's own state names — what <code>swb</code> prints is exactly what your board shows: Backlog, Todo, In&nbsp;Progress, In&nbsp;Review, Done.</p>
     <div class="tblwrap">
       <table>
         <tr><th>State</th><th>On your Linear board</th><th>Enters via</th><th>Who</th></tr>
-        <tr><td><code>Triage</code></td><td>Backlog</td><td><code>swb new</code></td><td>Anyone / any agent</td></tr>
-        <tr><td><code>Ready</code></td><td>Todo</td><td>Human promotes (needs template: acceptance criteria, files to touch, files NOT to touch, blocked-by)</td><td><b>Human gate</b> (PM)</td></tr>
+        <tr><td><code>Backlog</code></td><td>Backlog</td><td><code>swb new</code></td><td>Anyone / any agent</td></tr>
+        <tr><td><code>Todo</code></td><td>Todo</td><td>Human promotes (needs template: acceptance criteria, files to touch, files NOT to touch, blocked-by)</td><td><b>Human gate</b> (PM)</td></tr>
         <tr><td><code>In Progress</code></td><td>In Progress</td><td><code>swb claim</code></td><td>Agent (dev sees it)</td></tr>
         <tr><td><code>In Review</code></td><td>In Review</td><td><code>swb done</code> — refuses without green tests + <code>--pr</code></td><td>Agent, gated by tests</td></tr>
         <tr><td><code>Done</code></td><td>Done</td><td>Human merges the PR</td><td><b>Human gate</b></td></tr>
@@ -520,7 +520,7 @@ disc   auth middleware strips X-Custom headers <span class="dim">(Dana)</span>
       <li>Claiming a ticket whose blockers aren't Done should trigger a loud warning — dependency discipline is meant to be code, not vigilance.</li>
       <li>Tickets are agent-sized: 30–90 minutes, one worktree, one PR. Merge per-ticket, not per-checkpoint.</li>
     </ul>
-    <p class="note"><b>Note (tool vs spec):</b> in the shipped v1, <code>swb new</code> creates the Triage ticket but does <b>not</b> enforce the Ready template, and <code>swb claim</code> does <b>not</b> yet block on unfinished blockers. Both are human-gated on planning day: the PM applies the template when promoting and checks blockers before a claim. Treat these as protocol you keep, not something the CLI checks for you.</p>
+    <p class="note"><b>Note (tool vs spec):</b> in the shipped v1, <code>swb new</code> creates the Backlog ticket but does <b>not</b> enforce the Todo template, and <code>swb claim</code> does <b>not</b> yet block on unfinished blockers. Both are human-gated on planning day: the PM applies the template when promoting and checks blockers before a claim. Treat these as protocol you keep, not something the CLI checks for you.</p>
   </section>
 
   <!-- ── FLEETS & GOAL LOOPS ────────────────────────────────── -->

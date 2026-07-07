@@ -19,10 +19,13 @@ const CLAIM_VERIFY_DELAY_MS = 1500;
 // otherwise every fresh session replays the board's entire history (seen live).
 const FIRST_LOOK_WINDOW_MS = 30 * 60 * 1000;
 
-// swb state name -> Linear workflow state name
+// Kit state name -> Linear workflow state name. IDENTITY since 2026-07-07:
+// the kit speaks Linear's own vocabulary (owner call — 'Triage/Ready' confused
+// every first-time user). The map stays as the doctor's checklist + seam for
+// teams that rename their Linear states.
 const STATE_MAP = {
-  Triage: 'Backlog',
-  Ready: 'Todo',
+  Backlog: 'Backlog',
+  Todo: 'Todo',
   'In Progress': 'In Progress',
   'In Review': 'In Review',
   Done: 'Done',
@@ -30,8 +33,8 @@ const STATE_MAP = {
 const REQUIRED_STATES = Object.keys(STATE_MAP); // the five swb states doctor verifies
 // Reasonable Linear state TYPE for each required state when doctor --fix creates it.
 const STATE_TYPE = {
-  Triage: 'backlog',
-  Ready: 'unstarted',
+  Backlog: 'backlog',
+  Todo: 'unstarted',
   'In Progress': 'started',
   'In Review': 'started',
   Done: 'completed',
@@ -498,7 +501,7 @@ function renderDigest(cache, items, now, ownership) {
       if (own && own.files && own.files.length) lines.push(claimLine(it, ownership));
       else lines.push(`state  ${it.key} → ${swbStateName(it.state)}`);
     } else if (it.kind === 'new') {
-      lines.push(`new    ${it.key} ${trunc(it.title, 60)} [Triage]`);
+      lines.push(`new    ${it.key} ${trunc(it.title, 60)} [Backlog]`);
     }
   }
   if (extra > 0) lines.push(`+${extra} more`);
@@ -883,11 +886,11 @@ async function verbNew(ctx) {
   if (!title) throw new RecipeError('new needs "<title>"', ['Usage: swb new "title" [--body "..."]']);
   const recipe = [
     `Create an issue titled "${title}" in team ${teamKey}`,
-    'Set its state to Triage (Backlog)',
+    'Set its state to Backlog',
     args.body ? `Set description: ${args.body}` : 'Leave description empty',
   ];
   try {
-    const { stateId, teamId } = await getStateIdByName(teamKey, 'Triage', apiKey);
+    const { stateId, teamId } = await getStateIdByName(teamKey, 'Backlog', apiKey);
     const m = `mutation($teamId: String!, $title: String!, $desc: String, $stateId: String!) {
       issueCreate(input: { teamId: $teamId, title: $title, description: $desc, stateId: $stateId }) {
         success issue { id identifier url state { name } } } }`;
@@ -895,11 +898,11 @@ async function verbNew(ctx) {
     const d = await linear(m, { teamId, title, desc, stateId }, apiKey);
     if (!d.issueCreate || !d.issueCreate.success) throw new Error('issueCreate failed');
     const iss = d.issueCreate.issue;
-    // Say it in the USER's vocabulary too: swb's "Triage" renders as the
-    // "${STATE_MAP.Triage}" group in the Linear UI — first-install users looked
-    // for a group literally named Triage and couldn't find it. And print the
+    // Print the URL and the Linear-native state so the
+    // board shows — first-install users once looked
+    // for a group named 'Triage' that didn't exist on their board. And print the
     // URL: "open Linear and find it" is a scavenger hunt; a link is not.
-    out.write(`✔ created ${iss.identifier} "${trunc(title, 60)}" [Triage — the "${STATE_MAP.Triage}" group in Linear]\n`);
+    out.write(`✔ created ${iss.identifier} "${trunc(title, 60)}" [Backlog]\n`);
     if (iss.url) out.write(`  ${iss.url}\n`);
     return { code: 0 };
   } catch (err) {
@@ -912,7 +915,7 @@ async function verbNew(ctx) {
 // panorama. The digest deliberately shows only DELTAS since your last look;
 // board is the complement — the whole picture on demand. Read-only, serves the
 // cache (refetching if stale) so it costs at most one API round-trip.
-const BOARD_STATE_ORDER = ['In Progress', 'In Review', 'Ready', 'Triage', 'Done'];
+const BOARD_STATE_ORDER = ['In Progress', 'In Review', 'Todo', 'Backlog', 'Done'];
 async function verbBoard(ctx) {
   const { teamKey, apiKey, out, now } = ctx;
   const { cache, error } = await ensureCache(teamKey, apiKey, now.getTime());
@@ -1010,7 +1013,7 @@ async function verbRelease(ctx) {
     const issue = await findIssueByKey(teamKey, key, apiKey);
     // free the assignee AND send it back to Ready — an unassigned "In Progress"
     // ticket is a lie on the board (seen live: nobody owns it, nobody can grab it).
-    const { stateId } = await getStateIdByName(teamKey, 'Ready', apiKey);
+    const { stateId } = await getStateIdByName(teamKey, 'Todo', apiKey);
     const q = `mutation($id: String!, $stateId: String) {
       issueUpdate(id: $id, input: { assigneeId: null, stateId: $stateId }) { success } }`;
     await linear(q, { id: issue.id, stateId }, apiKey);

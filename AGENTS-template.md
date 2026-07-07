@@ -32,8 +32,8 @@ The human speaks English. **You speak `swb`.** Every board write goes through an
 2. **Declare your files honestly.** The `--files` globs you pass are what the
    ownership guard checks for *everyone else*. Under-declaring hides collisions;
    over-declaring blocks teammates. Declare exactly what this ticket touches.
-3. **Never create Ready work.** `swb new` lands in **Triage**. Only a human
-   promotes Triage → Ready. Do not move a ticket to Ready yourself.
+3. **Never create Todo work.** `swb new` lands in **Backlog**. Only a human
+   promotes Backlog → Ready. Do not move a ticket to Ready yourself.
 4. **Never close your own ticket.** `swb done` is the furthest you go — it moves
    the ticket to **In Review**. A human merges the PR to reach Done.
 5. **`done` is gated — do not fight it.** `swb done <KEY> --pr <url>` runs the
@@ -98,12 +98,12 @@ everything and reports stuck tickets, aging @asks, and scope drift.
 |---|---|---|
 | `swb sync` | Print the delta digest since your last look | Read-only. Safe to run anytime. **Codex: run this at the start of every task.** |
 | `swb show <KEY>` | Read a ticket's full state + comments | Read-only. Use it whenever a digest line references a ticket. |
-| `swb claim <KEY> --files "<globs>"` | Take a Ready ticket | Assign → In Progress → worktree at `../switchboard-wt/<KEY>` → declare files → signed comment. Backs off (exit 3) if you lose a claim race. |
+| `swb claim <KEY> --files "<globs>"` | Take a Todo ticket | Assign → In Progress → worktree at `../switchboard-wt/<KEY>` → declare files → signed comment. Backs off (exit 3) if you lose a claim race. |
 | `swb ask <KEY> @<user> "<question>"` | Ask the ticket owner something | Posts a signed `@mention` comment. Surfaces in their next digest's priority slot. Then park and move on. |
 | `swb discover "<text>"` | Share a cross-cutting finding | Appends `DISCOVERIES.md` + comments on the pinned Discoveries thread. Reaches all sessions within one turn. |
 | `swb done <KEY> --pr <url>` | Mark work ready for review | **Runs tests first, refuses on non-zero**, requires `--pr`, moves to In Review, posts a summary (or pass `--summary "…"`), frees your file ownership. |
 | `swb release <KEY>` | Drop a claim you can't finish | Unassigns, frees file ownership, **keeps** the branch/worktree. |
-| `swb new "<title>" [--body "…"]` | File a new ticket | Always lands in **Triage**. A human promotes it later. |
+| `swb new "<title>" [--body "…"]` | File a new ticket | Always lands in **Backlog**. A human promotes it later. |
 | `swb doctor [--fix]` | Check your setup | Verifies key, team, API, and the five states. `--fix` creates missing states. |
 
 **Exit codes:** `0` ok · `2` failed-with-recipe (do the printed `MANUAL RECIPE:`
@@ -164,6 +164,6 @@ _Fill in below. These are yours to set; changing them does not break the floor._
 - **File-ownership map:** the glob patterns each area owns, so `--files`
   declarations don't overlap by accident.
 - **Ready-ticket template:** acceptance criteria, files to touch, files NOT to
-  touch, blocked-by links. (The PM applies this when promoting Triage → Ready.)
+  touch, blocked-by links. (The PM applies this when promoting Backlog → Ready.)
 - **Merge cadence & review policy:** per-ticket vs checkpoint; who reviews at
   `done`.

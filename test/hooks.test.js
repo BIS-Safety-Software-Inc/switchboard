@@ -149,7 +149,7 @@ test('userpromptsubmit reference engine: EXACT digest content per CONTRACTS.md',
   const lines2 = engine.buildItems(cache2, ownership, 'marc', since).map(i => i.text);
   assert.ok(lines2.includes('state  HAC-23 → In Progress'), 'foreign state change surfaces');
   assert.ok(lines.includes('disc   auth middleware strips X-Custom headers (dana)'), 'discovery');
-  assert.ok(lines.includes('new    HAC-40 New triage ticket about auth headers [Triage]'), 'new triage');
+  assert.ok(lines.includes('new    HAC-40 New triage ticket about auth headers [Backlog]'), 'new triage');
   // full render round-trips the exact block shape
   const digest = engine.renderDigest(cache, items);
   assert.ok(digest.startsWith('── switchboard · '));

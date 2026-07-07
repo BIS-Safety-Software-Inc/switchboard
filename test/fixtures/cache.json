@@ -3,8 +3,8 @@
   "teamKey": "HAC",
   "viewer": { "name": "marc", "displayName": "marc" },
   "states": {
-    "Triage": { "linearName": "Backlog", "id": "st-backlog" },
-    "Ready": { "linearName": "Todo", "id": "st-todo" },
+    "Backlog": { "linearName": "Backlog", "id": "st-backlog" },
+    "Todo": { "linearName": "Todo", "id": "st-todo" },
     "In Progress": { "linearName": "In Progress", "id": "st-inprogress" },
     "In Review": { "linearName": "In Review", "id": "st-inreview" },
     "Done": { "linearName": "Done", "id": "st-done" }
@@ -31,7 +31,7 @@
     {
       "key": "HAC-40",
       "title": "New triage ticket about auth headers",
-      "state": "Triage",
+      "state": "Backlog",
       "assignee": null,
       "createdAt": "2026-07-06T14:19:00.000Z",
       "updatedAt": "2026-07-06T14:19:00.000Z",

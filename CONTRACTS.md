@@ -40,16 +40,16 @@ Spec context: `~/Desktop/AI Hackathon/switchboard-spec.html`. Read it once befor
   "fetchedAt": "ISO",
   "teamKey": "HAC",
   "viewer": { "name": "Turni Saha", "displayName": "turni" },
-  "states": { "Triage": {"linearName": "Backlog", "id": "..."}, "Ready": {"linearName": "Todo", "id": "..."},
+  "states": { "Backlog": {"linearName": "Backlog", "id": "..."}, "Todo": {"linearName": "Todo", "id": "..."},
               "In Progress": {"linearName": "In Progress", "id": "..."}, "In Review": {"linearName": "In Review", "id": "..."},
               "Done": {"linearName": "Done", "id": "..."} },
-  "issues": [ { "key": "HAC-12", "title": "...", "state": "Ready", "assignee": "name-or-null",
+  "issues": [ { "key": "HAC-12", "title": "...", "state": "Todo", "assignee": "name-or-null",
                 "createdAt": "ISO", "updatedAt": "ISO" } ],
   "comments": [ { "issueKey": "HAC-12", "author": "name", "body": "...", "createdAt": "ISO", "discovery": false } ]
 }
 ```
 
-Rules: `issues[].state` uses SWB state names (mapped at fetch time). `comments[].discovery` is true iff the comment sits on the pinned Discoveries issue (label `swb-meta`). Mentions are NEVER stored — consumers compute them from `body` with the word-boundary `@name` regex. Home dir env override: **`SWITCHBOARD_HOME` is the ONE name** (swb.js, hooks, installer all honor it; `SWB_HOME` is dead).
+Rules: `issues[].state` uses Linear-native state names. `comments[].discovery` is true iff the comment sits on the pinned Discoveries issue (label `swb-meta`). Mentions are NEVER stored — consumers compute them from `body` with the word-boundary `@name` regex. Home dir env override: **`SWITCHBOARD_HOME` is the ONE name** (swb.js, hooks, installer all honor it; `SWB_HOME` is dead).
 
 Repo-local: `.swb.json` → `{"teamKey": "SWB-or-team", "testCommand": "node --test", "defaultBranch": "master"}`.
 Team resolution order: `.swb.json` teamKey → env `SWB_TEAM_KEY`. **Refuse to run without a resolved team.** All queries/mutations are filtered to that ONE team.
@@ -57,7 +57,7 @@ Team resolution order: `.swb.json` teamKey → env `SWB_TEAM_KEY`. **Refuse to r
 ## Linear API contract
 
 - Endpoint `https://api.linear.app/graphql`, header `Authorization: <key>` (no Bearer). Time-box every call at 5s.
-- State mapping (swb name → Linear workflow state name): `Triage→Backlog`, `Ready→Todo`, `In Progress→In Progress`, `In Review→In Review`, `Done→Done`. `doctor` verifies all five exist on the team and prints which are missing (creating missing states via `workflowStateCreate` is a doctor `--fix` action).
+- State mapping (swb name → Linear workflow state name): IDENTITY since 2026-07-07 — the kit uses Linear-native names: `Backlog, Todo, In Progress, In Review, Done` (STATE_MAP retained as doctor checklist/seam). `doctor` verifies all five exist on the team and prints which are missing (creating missing states via `workflowStateCreate` is a doctor `--fix` action).
 - Every comment body ends with: `\n\n🤖 Claude — via {viewer.name} · swb v{VERSION}`.
 - Test hygiene: every issue created by tests gets label `swb-test` (create label if missing); test teardown deletes all `swb-test` issues. Tests NEVER touch issues lacking that label.
 
@@ -69,7 +69,7 @@ swb claim <KEY> --files <g1,g2> [--session <id>]
 swb done <KEY> --pr <url>              # runs .swb.json testCommand; exit!=0 → REFUSE with output
 swb ask <KEY> <@user> "<question>"
 swb discover "<text>"                  # appends repo DISCOVERIES.md + comments on pinned 'Discoveries' issue (label swb-meta, create on first use)
-swb new "<title>" [--body "<b>"]       # ALWAYS created in Triage state
+swb new "<title>" [--body "<b>"]       # ALWAYS created in Backlog state
 swb show <KEY>
 swb release <KEY>
 swb doctor [--fix]
@@ -88,7 +88,7 @@ swb doctor [--fix]
 claim  {KEY} {title ≤ 40} → {assignee}   files: {globs}
 state  {KEY} → {swb state name}
 disc   {text ≤ 90} ({author})
-new    {KEY} {title ≤ 60} [Triage]
+new    {KEY} {title ≤ 60} [Backlog]
 act    if any item above touches your claimed ticket or declared files, state the impact before continuing
 ──
 ```

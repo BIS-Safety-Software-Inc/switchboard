@@ -8,7 +8,7 @@
  * captures verb output via an injected `out` sink.
  *
  * Coverage: every verb happy path, the claim verify-after-write race (exit 3),
- * done refusing on a failing testCommand, new landing in Triage, fail-open
+ * done refusing on a failing testCommand, new landing in Backlog, fail-open
  * MANUAL RECIPE on API error (exit 2), and exact digest formatting
  * (@you-first ordering, 12-line cap, act-line only when items exist).
  */
@@ -176,7 +176,7 @@ test('digest: 12-line cap with +N more', () => {
       id: 'x' + i, key: 'HAC-' + i, title: 'ticket ' + i,
       createdAt: new Date(Date.parse('2026-07-06T13:00:00.000Z') + i * 1000).toISOString(),
       updatedAt: new Date(Date.parse('2026-07-06T13:00:00.000Z') + i * 1000).toISOString(),
-      state: 'Triage', assignee: null, labels: [],
+      state: 'Backlog', assignee: null, labels: [],
     });
   }
   const cache = { fetchedAt: now.toISOString(), teamKey: 'HAC', issues, comments: [], states: {} };
@@ -568,7 +568,7 @@ test('buildDeltaItems: @Turni comment surfaces as @you for a turni.saha viewer',
   assert.match(digest, /@you   HAC-23 sarah: "@Turni what schema shape\?"/);
 });
 
-test('new: always lands in Triage (Backlog stateId sent) (exit 0)', async () => {
+test('new: always lands in Backlog (Backlog stateId sent) (exit 0)', async () => {
   const home = mkHome();
   const cwd = mkRepo();
   let sentVars = null;
@@ -579,10 +579,10 @@ test('new: always lands in Triage (Backlog stateId sent) (exit 0)', async () => 
     ]);
     const { code, out } = await runVerb(['new', 'Fix the auth header bug', '--body', 'details here'], { home, cwd });
     assert.strictEqual(code, 0, out);
-    assert.match(out, /\[Triage — the "Backlog" group in Linear\]/, 'creation names BOTH vocabularies');
+    assert.match(out, /\[Backlog\]/, 'creation prints the Linear-native state');
     assert.match(out, /https:\/\/linear\.app\//, 'creation prints the clickable issue URL');
-    // must send the Backlog (Triage) state id, never Ready/Todo
-    assert.strictEqual(sentVars.stateId, 'st-backlog', 'new must target Triage → Backlog state');
+    // must send the Backlog (Backlog) state id, never Ready/Todo
+    assert.strictEqual(sentVars.stateId, 'st-backlog', 'new must target Backlog → Backlog state');
     assert.strictEqual(sentVars.title, 'Fix the auth header bug');
   });
   rm(home); rm(cwd);
@@ -645,7 +645,7 @@ test('release: unassigns, frees ownership, keeps branch (exit 0)', async () => {
       H.commentCreate(),
     ]);
     const { code, out } = await runVerb(['release', 'HAC-14'], { home, cwd });
-    assert.strictEqual(releaseVars && releaseVars.stateId, 'st-todo', 'release moves the ticket back to Ready (Todo)');
+    assert.strictEqual(releaseVars && releaseVars.stateId, 'st-todo', 'release moves the ticket back to Todo');
     assert.strictEqual(code, 0, out);
     assert.match(out, /released HAC-14 \(branch kept\)/);
     const own = JSON.parse(fs.readFileSync(path.join(home, 'ownership.json'), 'utf8'));
@@ -899,7 +899,7 @@ test('swb-test hygiene: teardown never deletes an unlabelled issue', {
 // P0s, so these drive the REAL CLI against the REAL HAC board.)
 // ────────────────────────────────────────────────────────────────────────────
 // Covers: sync populates a non-empty, schema-valid v2 cache; `new` lands in
-// Triage; `show` finds it; `claim` moves it In Progress + assigns the viewer;
+// Backlog; `show` finds it; `claim` moves it In Progress + assigns the viewer;
 // `release` unassigns. Every issue the run creates carries the swb-test label,
 // and an unconditional teardown deletes ALL swb-test issues at the end so the
 // HAC board is left clean even if an assertion throws mid-flight.
@@ -936,7 +936,7 @@ function keyFromNewOutput(out) {
   return m ? m[1] : null;
 }
 
-test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → release, then teardown', {
+test('LIVE round-trip: sync → new(Backlog) → show → claim(In Progress) → release, then teardown', {
   skip: LIVE_KEY ? false : 'set SWB_LIVE_LINEAR_KEY to run the live round-trip',
 }, async () => {
   const R = liveRunner();
@@ -963,24 +963,24 @@ test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → 
     // "non-empty schema-valid cache": states are fully populated (the always-present part)
     assert.strictEqual(Object.keys(cache.states).length, swb.REQUIRED_STATES.length, 'all five states cached');
 
-    // ── new: ALWAYS lands in Triage ──────────────────────────────────────────
+    // ── new: ALWAYS lands in Backlog ──────────────────────────────────────────
     const title = `swb live probe ${Date.now()}`;
     const n = await R.run(['new', title, '--body', 'live round-trip probe body']);
     assert.strictEqual(n.code, 0, n.out);
-    assert.match(n.out, /\[Triage\]/);
+    assert.match(n.out, /\[Backlog\]/);
     createdKey = keyFromNewOutput(n.out);
     assert.ok(createdKey, `parsed a created key from: ${n.out}`);
     // label it immediately so teardown is guaranteed to reap it.
     await labelIssueSwbTest(LIVE_TEAM, createdKey, LIVE_KEY);
-    // verify it really is in Triage (Backlog) via a live read
+    // verify it really is in Backlog (Backlog) via a live read
     const created = await swb.findIssueByKey(LIVE_TEAM, createdKey, LIVE_KEY);
-    assert.strictEqual(swb.swbStateName(created.state.name), 'Triage', `new issue ${createdKey} is in Triage`);
+    assert.strictEqual(swb.swbStateName(created.state.name), 'Backlog', `new issue ${createdKey} is in Backlog`);
 
     // ── show: finds the issue by its parsed key (number + team.key filter) ────
     const sh = await R.run(['show', createdKey]);
     assert.strictEqual(sh.code, 0, sh.out);
     assert.ok(sh.out.includes(createdKey) && sh.out.includes(title), `show output names the issue: ${sh.out}`);
-    assert.match(sh.out, /state: Triage/);
+    assert.match(sh.out, /state: Backlog/);
 
     // ── claim: moves it In Progress + assigns the viewer ──────────────────────
     const cl = await R.run(['claim', createdKey, '--files', 'src/live/*', '--session', 'live1']);
@@ -1076,8 +1076,8 @@ test('board: groups issues by state with assignees, In Progress first', async ()
         states: {},
         issues: [
           { key: 'HAC-1', title: 'player ui', state: 'In Progress', assignee: 'Patrick Hohol', createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
-          { key: 'HAC-2', title: 'schema', state: 'Ready', assignee: null, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
-          { key: 'HAC-3', title: 'ideas', state: 'Triage', assignee: null, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
+          { key: 'HAC-2', title: 'schema', state: 'Todo', assignee: null, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
+          { key: 'HAC-3', title: 'ideas', state: 'Backlog', assignee: null, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
         ],
         comments: [],
       };
@@ -1088,8 +1088,8 @@ test('board: groups issues by state with assignees, In Progress first', async ()
       assert.match(out, /In Progress \(1\)/);
       assert.match(out, /HAC-1 {2}player ui.*→ Patrick Hohol/);
       const ipIdx = out.indexOf('In Progress (');
-      const trIdx = out.indexOf('Triage (');
-      assert.ok(ipIdx !== -1 && trIdx !== -1 && ipIdx < trIdx, 'In Progress renders before Triage');
+      const trIdx = out.indexOf('Backlog (');
+      assert.ok(ipIdx !== -1 && trIdx !== -1 && ipIdx < trIdx, 'In Progress renders before Backlog');
     });
   } finally { rm(home); rm(cwd); }
 });

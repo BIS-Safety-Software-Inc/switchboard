@@ -313,16 +313,16 @@ function buildItems(cache, ownership, viewer, sinceMs) {
     });
   }
 
-  // new — issues created since cursor in Triage
+  // new — issues created since cursor in Backlog
   for (const it of issues) {
     if (!it || !it.key) continue;
     if (tsMs(it.createdAt) <= sinceMs) continue;
     const state = String(it.state || '');
-    if (state && state.toLowerCase() !== 'triage') continue; // CONTRACTS: new items are Triage
+    if (state && state.toLowerCase() !== 'backlog') continue; // CONTRACTS: new items are Backlog
     items.push({
       you: false,
       ts: tsMs(it.createdAt),
-      text: `new    ${pad(it.key, 6)} ${trunc(it.title, 60)} [Triage]`,
+      text: `new    ${pad(it.key, 6)} ${trunc(it.title, 60)} [Backlog]`,
     });
   }
 
