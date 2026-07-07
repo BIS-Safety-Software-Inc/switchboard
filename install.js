@@ -169,12 +169,64 @@ async function resolveExplicitKey(args, existingKey) {
   if (args.noPrompt || !process.stdin.isTTY) return ''; // nothing new offered
   if (existingKey && !args.force) return ''; // already have one; don't nag
 
+  // Interactive install with no key anywhere: the key is MANDATORY. Print the
+  // exact click-path here — this prompt is the moment the user actually needs
+  // it, not a doc they already scrolled past. Loop until a plausible key is
+  // pasted AND Linear accepts it; Ctrl-C is the only way out without one.
+  console.log('');
+  console.log(color('1', 'You need your PERSONAL Linear API key (takes ~1 minute):'));
+  console.log('  1. Open linear.app and log in (accept the workspace invite first if you haven\'t)');
+  console.log('  2. Click the workspace name (top-left) → Settings');
+  console.log('  3. Security & access → Personal API keys → New API key');
+  console.log('  4. Name it "switchboard", create it, and copy the lin_api_... value');
+  console.log('  (Every person needs their OWN key — never share one.)');
+  console.log('');
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await new Promise((resolve) => {
-    rl.question('Enter your LINEAR_API_KEY (blank to skip for now): ', resolve);
-  });
-  rl.close();
-  return answer.trim();
+  const askOnce = (q) => new Promise((resolve) => rl.question(q, resolve));
+  try {
+    for (;;) {
+      const answer = (await askOnce('Paste your LINEAR_API_KEY: ')).trim();
+      if (!answer) {
+        warn('The key is required — switchboard cannot talk to your board without it. (Ctrl-C to abort the install.)');
+        continue;
+      }
+      if (!/^lin_api_/.test(answer)) {
+        warn('That doesn\'t look like a Linear API key (they start with lin_api_). Copy the WHOLE value from step 4.');
+        continue;
+      }
+      const who = await validateKeyLive(answer);
+      if (who === null) {
+        warn('Linear rejected that key — re-copy it (the full value, no spaces), or mint a fresh one and try again.');
+        continue;
+      }
+      if (who) ok(`key works — hello, ${who}`);
+      return answer;
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+// Quick live check: does Linear accept this key? Returns the viewer name,
+// '' when the check could not run (offline — accept the key, doctor will judge
+// it later), or null when Linear explicitly rejected it.
+async function validateKeyLive(key) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch('https://api.linear.app/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: key },
+      body: JSON.stringify({ query: '{ viewer { name } }' }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    const json = await res.json();
+    if (json && json.data && json.data.viewer && json.data.viewer.name) return json.data.viewer.name;
+    return null; // HTTP-level or auth error → explicit rejection
+  } catch (_) {
+    return ''; // network trouble → don't block the install on it; doctor re-checks
+  }
 }
 
 async function writeEnv(swbDir, args) {
@@ -200,8 +252,13 @@ async function writeEnv(swbDir, args) {
   fs.writeFileSync(envPath, header + body);
   chmod600(envPath);
 
-  if (next.LINEAR_API_KEY) ok(`LINEAR_API_KEY written to ${envPath}`);
-  else warn(`No LINEAR_API_KEY yet — add one to ${envPath} before using swb.`);
+  if (next.LINEAR_API_KEY) {
+    ok(`LINEAR_API_KEY written to ${envPath}`);
+  } else {
+    warn(`No LINEAR_API_KEY yet — swb will NOT work until you add one.`);
+    warn(`Get one: linear.app → workspace name → Settings → Security & access → Personal API keys.`);
+    warn(`Then re-run: node install.js`);
+  }
   return envPath;
 }
 
@@ -476,6 +533,7 @@ if (require.main === module) {
 // Exported for tests (only the pure, side-effect-light pieces).
 module.exports = {
   parseArgs,
+  validateKeyLive,
   parseEnvFile,
   serializeEnv,
   mergeEvent,
