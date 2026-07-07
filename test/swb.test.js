@@ -81,6 +81,8 @@ const H = {
     reply: (q, v) => { if (capture) capture(v); return { commentCreate: { success: true, comment: { id: 'c-new' } } }; },
   }),
   issueUpdate: () => ({ match: (q) => has(q, 'issueUpdate'), reply: { issueUpdate: { success: true, issue: { id: 'i-1', assignee: { id: 'u-me', name: 'Turni' }, state: { name: 'In Progress' } } } } }),
+  // Direct-by-id read used by the claim recheck (strongly consistent path).
+  issueById: (issue) => ({ match: (q) => has(q, 'issue(id:'), reply: { issue } }),
   issueCreate: (capture) => ({
     match: (q) => has(q, 'issueCreate'),
     reply: (q, v) => { if (capture) capture(v); return { issueCreate: { success: true, issue: { id: 'i-new', identifier: 'HAC-99', state: { name: 'Backlog' } } } }; },
@@ -277,6 +279,7 @@ test('claim: happy path assigns, writes ownership, posts comment, exit 0', async
         { id: 'i-14', identifier: 'HAC-14', title: 'player ui', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: { id: 'u-me', name: 'Turni' }, labels: { nodes: [] } },
       ]),
       H.issueUpdate(),
+      H.issueById({ id: 'i-14', identifier: 'HAC-14', assignee: { id: 'u-me', name: 'Turni' }, state: { id: 'st-inprogress', name: 'In Progress' } }),
       H.commentCreate((v) => commentBodies.push(v.body)),
     ]);
     const { code, out } = await runVerb(['claim', 'HAC-14', '--files', 'src/player/*,src/ui/*', '--session', 's1'], { home, cwd });
@@ -305,6 +308,7 @@ test('claim: race — assignee changed on re-fetch → back off, exit 3', async 
         { id: 'i-14', identifier: 'HAC-14', title: 't', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: { id: 'u-other', name: 'Marc' }, labels: { nodes: [] } },
       ]),
       H.issueUpdate(),
+      H.issueById({ id: 'i-14', identifier: 'HAC-14', assignee: { id: 'u-other', name: 'Marc' }, state: { id: 'st-inprogress', name: 'In Progress' } }),
       H.commentCreate(),
     ]);
     const { code, out } = await runVerb(['claim', 'HAC-14', '--files', 'src/*', '--session', 's1'], { home, cwd });
@@ -313,6 +317,30 @@ test('claim: race — assignee changed on re-fetch → back off, exit 3', async 
     assert.match(out, /Marc/);
     // ownership NOT written on a lost race
     assert.ok(!fs.existsSync(path.join(home, 'ownership.json')) || !JSON.parse(fs.readFileSync(path.join(home, 'ownership.json'), 'utf8'))['HAC-14']);
+  });
+  rm(home); rm(cwd);
+});
+
+// Regression (live, 2026-07-07 first user tour): Linear's issues(filter:) search
+// index lags writes by many seconds. The recheck MUST read issue(id:) — trusting
+// the stale filtered path produced a false "race lost" on a ticket we owned.
+test('claim: stale search index does NOT cause a false race loss', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();
+  await withEnv(home, 'lin_test_key', async () => {
+    installFetch([
+      H.viewer('Turni'),
+      H.teamByKey(FULL_STATES),
+      // The filtered search NEVER catches up in this scenario: always unassigned/Todo.
+      issueByKey({ id: 'i-14', identifier: 'HAC-14', title: 't', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-todo', name: 'Todo' }, assignee: null, labels: { nodes: [] } }),
+      H.issueUpdate(),
+      // The strongly-consistent by-id read shows the truth: it's ours.
+      H.issueById({ id: 'i-14', identifier: 'HAC-14', assignee: { id: 'u-me', name: 'Turni' }, state: { id: 'st-inprogress', name: 'In Progress' } }),
+      H.commentCreate(),
+    ]);
+    const { code, out } = await runVerb(['claim', 'HAC-14', '--files', 'src/*', '--session', 's1'], { home, cwd });
+    assert.strictEqual(code, 0, out);
+    assert.match(out, /✔ claimed HAC-14/);
   });
   rm(home); rm(cwd);
 });

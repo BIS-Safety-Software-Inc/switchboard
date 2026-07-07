@@ -563,6 +563,18 @@ async function getStateIdByName(teamKey, swbName, apiKey) {
   if (!st) throw new Error(`Workflow state "${linName}" (${swbName}) missing on team ${teamKey} — run: swb doctor --fix`);
   return { stateId: st.id, teamId: team.id };
 }
+// Direct-by-id read — STRONGLY consistent, unlike the issues(filter:) search
+// path, which reads a lagging index (observed 17s+ stale live on 2026-07-07 and
+// falsely reported a just-claimed issue as unassigned). Race verification MUST
+// use this, never the filtered search.
+async function getIssueById(issueId, apiKey) {
+  const q = `query($id: String!) {
+    issue(id: $id) { id identifier assignee { id name } state { id name } } }`;
+  const d = await linear(q, { id: issueId }, apiKey);
+  if (!d.issue) throw new Error(`issue ${issueId} not found by id`);
+  return d.issue;
+}
+
 async function setAssigneeAndState(issueId, assigneeId, stateId, apiKey) {
   const q = `mutation($id: String!, $assigneeId: String, $stateId: String) {
     issueUpdate(id: $id, input: { assigneeId: $assigneeId, stateId: $stateId }) {
@@ -655,9 +667,11 @@ async function verbClaim(ctx) {
     }
     const { stateId } = await getStateIdByName(teamKey, 'In Progress', apiKey);
     await setAssigneeAndState(issue.id, viewer.id, stateId, apiKey);
-    // verify-after-write race protocol (delay overridable for tests, default 1500ms)
+    // verify-after-write race protocol (delay overridable for tests, default 1500ms).
+    // Recheck by ID: the filtered search index lags writes by many seconds, and
+    // trusting it here produced false "race lost" back-offs on tickets we owned.
     await sleep(ctx.claimDelayMs == null ? CLAIM_VERIFY_DELAY_MS : ctx.claimDelayMs);
-    const recheck = await findIssueByKey(teamKey, key, apiKey);
+    const recheck = await getIssueById(issue.id, apiKey);
     if (!recheck.assignee || recheck.assignee.id !== viewer.id) {
       out.write(`\n⚠ claim race lost: ${key} is now assigned to ${recheck.assignee ? recheck.assignee.name : 'someone else'}. Backing off.\n`);
       return { code: 3 };
@@ -1229,7 +1243,7 @@ module.exports = {
   readOwnership, writeOwnership, readCursor, writeCursor,
   logEvent,
   // linear
-  linear, getViewer, getTeamByKey, getTeamMembers, findIssueByKey, postComment, signComment,
+  linear, getViewer, getTeamByKey, getTeamMembers, findIssueByKey, getIssueById, postComment, signComment,
   // mentions
   matchMember, viewerHandleTokens, mentionRegexesFor, bodyMentionsViewer,
   // digest
