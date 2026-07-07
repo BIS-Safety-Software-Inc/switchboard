@@ -27,3 +27,7 @@
 
 ## 2026-07-07 · Onboarding (mastermind: Fable)
 - Owner decision: no video; tour + auto-open playbook. /swb-tour command (installer copies to ~/.claude/commands/) = guided hands-on: Part 1 solo mechanics, Part 2 PAIRED — solo digest is quiet BY DESIGN (deltas + self-suppression), so all cross-agent behavior (claim arrival, @you round-trip, race, guard) is buddy-based. Installer: 7 steps, opens PLAYBOOK.html at end (--no-open to skip; auto-skipped when not a TTY so tests/CI never pop a browser). 70 tests green.
+
+## 2026-07-07 · Owner decisions during first live tour
+- Linear PAID upgrade approved: unlimited tickets. 250-cap mitigations in docs stay as history; Triage gate retained for CURATION (not quota).
+- Tour step 4 now names the Triage-watcher duty (PM/captain/named member, sweep cadence) + exact Linear UI click path for promote (status icon in list view).
