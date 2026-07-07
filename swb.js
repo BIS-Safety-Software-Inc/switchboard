@@ -860,6 +860,40 @@ async function verbNew(ctx) {
   }
 }
 
+// Full-board snapshot, grouped by state: the "what is everyone doing right now"
+// panorama. The digest deliberately shows only DELTAS since your last look;
+// board is the complement — the whole picture on demand. Read-only, serves the
+// cache (refetching if stale) so it costs at most one API round-trip.
+const BOARD_STATE_ORDER = ['In Progress', 'In Review', 'Ready', 'Triage', 'Done'];
+async function verbBoard(ctx) {
+  const { teamKey, apiKey, out, now } = ctx;
+  const { cache, error } = await ensureCache(teamKey, apiKey, now.getTime());
+  if (!cache) {
+    throw new RecipeError('no board data (Linear unreachable, no cache)', [
+      `Open Linear → team ${teamKey} board to view it by hand.`,
+    ], error && error.message);
+  }
+  const age = Math.round(cacheAgeMs(cache, now.getTime()) / 1000);
+  out.write(`── ${teamKey} board · cache ${age}s${error ? ' (STALE — refetch failed)' : ''} ──\n`);
+  const byState = new Map();
+  for (const iss of cache.issues || []) {
+    const st = iss.state || '(unknown)';
+    if (!byState.has(st)) byState.set(st, []);
+    byState.get(st).push(iss);
+  }
+  const states = [...BOARD_STATE_ORDER.filter((s) => byState.has(s)), ...[...byState.keys()].filter((s) => !BOARD_STATE_ORDER.includes(s))];
+  if (!states.length) out.write('  (no issues)\n');
+  for (const st of states) {
+    const rows = byState.get(st);
+    out.write(`${st} (${rows.length})\n`);
+    for (const iss of rows) {
+      out.write(`  ${iss.key}  ${trunc(iss.title, 48).padEnd(50)} ${iss.assignee ? '→ ' + iss.assignee : ''}\n`);
+    }
+  }
+  out.write('──\n');
+  return { code: 0 };
+}
+
 // List the team's active members: @handle + full name. Read-only. Exists so a
 // human (or the /swb-tour guide) can resolve "Pat" to the exact Linear identity
 // ("Patrick Hohol" / @pat.hohol) that digest lines and @you matching key off.
@@ -1049,7 +1083,7 @@ function parseArgs(argv) {
 }
 
 // Dispatch
-const READ_VERBS = new Set(['sync', 'show', 'doctor', 'members']);
+const READ_VERBS = new Set(['sync', 'show', 'doctor', 'members', 'board']);
 
 async function run(argv, options) {
   const opts = options || {};
@@ -1085,7 +1119,7 @@ async function run(argv, options) {
   const ctx = { teamKey, apiKey, args, sessionId, hook: !!args.hook, out, now, cwd, repo, claimDelayMs: opts.claimDelayMs };
   const verbs = {
     sync: verbSync, claim: verbClaim, done: verbDone, ask: verbAsk,
-    discover: verbDiscover, new: verbNew, show: verbShow, release: verbRelease, doctor: verbDoctor, members: verbMembers,
+    discover: verbDiscover, new: verbNew, show: verbShow, release: verbRelease, doctor: verbDoctor, members: verbMembers, board: verbBoard,
   };
   const fn = verbs[cmd];
   if (!fn) {
@@ -1125,6 +1159,7 @@ function usage() {
     '  swb new "<title>" [--body "<b>"]',
     '  swb show <KEY>',
     '  swb members',
+    '  swb board',
     '  swb release <KEY>',
     '  swb doctor [--fix]',
     '',
@@ -1204,5 +1239,5 @@ module.exports = {
   // hook seam
   hookDigest, refetchIfStale,
   // verbs (for direct unit testing)
-  verbSync, verbClaim, verbDone, verbAsk, verbDiscover, verbNew, verbShow, verbRelease, verbDoctor, verbMembers,
+  verbSync, verbClaim, verbDone, verbAsk, verbDiscover, verbNew, verbShow, verbRelease, verbDoctor, verbMembers, verbBoard,
 };

@@ -1029,6 +1029,38 @@ test('digest: self-suppression matches full name AND displayName (identity token
   assert.deepStrictEqual(kinds, ['you:HAC-2'], `own comment + own claim suppressed, real @you kept: ${JSON.stringify(kinds)}`);
 });
 
+// `swb board` — full-team snapshot grouped by state (the digest's complement).
+test('board: groups issues by state with assignees, In Progress first', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();
+  try {
+    await withEnv(home, null, async () => {
+      // Seed a fresh cache directly so board renders without a fetch.
+      const cache = {
+        fetchedAt: new Date('2026-07-06T14:22:00.000Z').toISOString(),
+        teamKey: 'HAC',
+        viewer: { name: 'Turni Saha', displayName: 'turni.saha' },
+        states: {},
+        issues: [
+          { key: 'HAC-1', title: 'player ui', state: 'In Progress', assignee: 'Patrick Hohol', createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
+          { key: 'HAC-2', title: 'schema', state: 'Ready', assignee: null, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
+          { key: 'HAC-3', title: 'ideas', state: 'Triage', assignee: null, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-06T10:00:00Z' },
+        ],
+        comments: [],
+      };
+      fs.writeFileSync(path.join(home, 'cache.json'), JSON.stringify(cache));
+      installFetch([]); // any fetch attempt would throw — board must serve the cache
+      const { code, out } = await runVerb(['board'], { home, cwd });
+      assert.strictEqual(code, 0, out);
+      assert.match(out, /In Progress \(1\)/);
+      assert.match(out, /HAC-1 {2}player ui.*→ Patrick Hohol/);
+      const ipIdx = out.indexOf('In Progress (');
+      const trIdx = out.indexOf('Triage (');
+      assert.ok(ipIdx !== -1 && trIdx !== -1 && ipIdx < trIdx, 'In Progress renders before Triage');
+    });
+  } finally { rm(home); rm(cwd); }
+});
+
 // `swb members` — the tour's buddy-resolution verb: @handle → full name, read-only.
 test('members: lists active team members with handle and full name', async () => {
   const home = mkHome();
