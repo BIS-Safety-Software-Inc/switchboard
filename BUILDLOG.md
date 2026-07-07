@@ -31,3 +31,8 @@
 ## 2026-07-07 · Owner decisions during first live tour
 - Linear PAID upgrade approved: unlimited tickets. 250-cap mitigations in docs stay as history; Triage gate retained for CURATION (not quota).
 - Tour step 4 now names the Triage-watcher duty (PM/captain/named member, sweep cadence) + exact Linear UI click path for promote (status icon in list view).
+
+## 2026-07-07 · Vocabulary refactor + fresh E2E retest (mastermind: Fable)
+- Kit now speaks Linear-native state names (Backlog/Todo) everywhere — Triage/Ready retired after first-user confusion. 73 tests green.
+- FRESH-DEV E2E PASS on this machine post-rename: public clone -> install --key (isolated home) -> doctor all green -> new [Backlog] w/ URL -> API promote -> claim (worktree+spec-print) -> done (test-gate -> In Review) -> second-session digest correct -> board clean.
+- New participant deliverable: Floor Tour click-through artifact (floor-not-rails framing, 4 MUSTs, Gate-2-under-skip-permissions honesty, proposer-bias disclosure, autonomy dial) for the Friday prep meeting.
