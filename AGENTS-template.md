@@ -23,6 +23,8 @@ The human speaks English. **You speak `swb`.** Every board write goes through an
 
 ## MUSTs (non-negotiable — this is the coordination floor)
 
+- **Read the full ticket before building.** `swb claim` prints the spec when you claim; for any OTHER ticket a digest line points you at (an @you question, a teammate's change), run `swb show <KEY>` before acting. Titles are headlines, not specs — never build from a title.
+
 1. **Claim before you edit.** Never edit a file for a ticket you have not
    claimed. Run `swb claim <KEY> --files "<glob1,glob2>"` first. This assigns the
    human, moves the ticket to In Progress, cuts a worktree, and declares your

@@ -285,6 +285,7 @@ test('claim: happy path assigns, writes ownership, posts comment, exit 0', async
     const { code, out } = await runVerb(['claim', 'HAC-14', '--files', 'src/player/*,src/ui/*', '--session', 's1'], { home, cwd });
     assert.strictEqual(code, 0, out);
     assert.match(out, /✔ claimed HAC-14/);
+    assert.match(out, /no description — ask the ticket author/, 'claim surfaces the missing-spec nudge');
     assert.match(out, /not in a git repo/); // worktree skipped
     const own = JSON.parse(fs.readFileSync(path.join(home, 'ownership.json'), 'utf8'));
     assert.deepStrictEqual(own['HAC-14'].files, ['src/player/*', 'src/ui/*']);

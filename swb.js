@@ -716,6 +716,11 @@ async function verbClaim(ctx) {
     // claim comment listing files
     await postComment(issue.id, `Claimed ${key}. Files: ${files.length ? files.join(', ') : '(none declared)'}`, viewer.name, apiKey);
     out.write(`✔ claimed ${key} → ${viewer.name} · In Progress · files: ${files.join(', ') || '(none)'}\n`);
+    // Print the FULL ticket at the moment of claiming: the description is the
+    // work spec, and an agent must never start building from the title alone.
+    out.write(`\n── ${key} ${issue.title || ''} ──\n`);
+    if (issue.description) out.write(`${issue.description}\n`);
+    else out.write(`(no description — ask the ticket author or the PM what the acceptance criteria are BEFORE building)\n`);
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
