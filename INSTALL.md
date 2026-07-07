@@ -28,6 +28,18 @@ git clone https://github.com/BIS-Safety-Software-Inc/switchboard.git && cd switc
 git clone https://github.com/BIS-Safety-Software-Inc/switchboard.git; cd switchboard; node install.js
 ```
 
+### Before you start — two things you need
+
+1. **Accept the Linear invite.** Check your email for an invite to the **BIS Agents**
+   Linear workspace (from Turni). Accept it before anything else — your API key is
+   scoped to your membership, so no invite = no working key.
+2. **Mint your personal API key.** In Linear: click your workspace name →
+   **Settings → Security & access → Personal API keys → New API key**. Name it
+   `switchboard`, copy the `lin_api_…` value somewhere safe — the installer asks
+   for it. **Every person needs their OWN key** — a shared key breaks claim-race
+   protection, @you routing, and attribution (the board would show one person
+   doing everything).
+
 The installer walks seven steps and is **safe to run twice** (it never duplicates
 hooks or overwrites your settings):
 

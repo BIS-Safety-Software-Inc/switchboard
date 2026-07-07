@@ -13,7 +13,7 @@ You are running the Switchboard tour for a hackathon participant. You are the gu
 
 ## Part 0 — Preflight (2 min)
 
-1. Run `swb doctor`. All green → continue. Anything red → fix it with the human before proceeding (missing key → `node install.js` in the switchboard repo; missing states → `swb doctor --fix`).
+1. Run `swb doctor`. All green → continue. Anything red → fix it with the human before proceeding. The usual chain for a missing/invalid key: (a) they must have ACCEPTED the Linear invite to the **BIS Agents** workspace (check email — Turni sent it; no invite accepted = keys won't work), (b) mint a personal key in Linear → **Settings → Security & access → Personal API keys** (each person needs their OWN — never share one), (c) re-run `node install.js` in the switchboard repo and paste it. Missing workflow states → `swb doctor --fix`.
 2. Explain in two sentences: "Every prompt you send me, a hook injects a digest of what changed on your team's Linear board — claims, questions for you, discoveries. I write to the board only through `swb` commands you approve. That's the whole system."
 3. **Line up the buddy NOW, not later.** Ask: "Part 2 needs a teammate at their own machine — who's your buddy?" Have them ping that person right now (Teams/Slack) with: *"Install switchboard (one line, INSTALL.md) and be ready in ~10 min for /swb-tour Part 2 — I need you for the two-player round."* The buddy installs while your human does Part 1, so nobody waits. If genuinely nobody is available, continue solo and make the LAST thing you say a concrete follow-up: who they'll grab and when they'll run `/swb-tour part2`.
 
