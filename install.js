@@ -279,7 +279,7 @@ function hookRegistrations() {
     // (and technically wrong) field for a non-tool event.
     UserPromptSubmit: { command: hookCmd('userpromptsubmit.js') },
     PostToolUse: { matcher: '*', command: hookCmd('posttooluse.js') },
-    PreToolUse: { matcher: 'Edit|Write|MultiEdit', command: hookCmd('pretooluse.js') },
+    PreToolUse: { matcher: 'Edit|Write|MultiEdit|Bash', command: hookCmd('pretooluse.js') },
   };
 }
 
@@ -294,8 +294,18 @@ function mergeEvent(settings, eventName, reg) {
   if (!Array.isArray(settings.hooks[eventName])) settings.hooks[eventName] = [];
   const groups = settings.hooks[eventName];
 
-  // Already registered anywhere in this event? Nothing to do (idempotent).
-  if (groups.some((g) => g && groupHasCommand(g, reg.command))) return false;
+  // Already registered anywhere in this event? Keep it — but if OUR group's
+  // matcher drifted from the current registration (e.g. PreToolUse grew Bash
+  // for Gate 2), update the matcher in place so re-running the installer
+  // upgrades existing installs. Only groups containing OUR command are touched.
+  const existing = groups.find((g) => g && groupHasCommand(g, reg.command));
+  if (existing) {
+    if (Object.prototype.hasOwnProperty.call(reg, 'matcher') && existing.matcher !== reg.matcher) {
+      existing.matcher = reg.matcher;
+      return true;
+    }
+    return false;
+  }
 
   // Append a fresh, isolated group so we never mutate the user's existing groups.
   // Only carry a `matcher` key when the registration actually has one — non-tool

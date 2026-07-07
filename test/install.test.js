@@ -79,7 +79,7 @@ test('hookRegistrations gives UserPromptSubmit no matcher, tool events a matcher
   assert.equal(Object.prototype.hasOwnProperty.call(regs.UserPromptSubmit, 'matcher'), false,
     'UserPromptSubmit registration carries no matcher');
   assert.equal(regs.PostToolUse.matcher, '*');
-  assert.equal(regs.PreToolUse.matcher, 'Edit|Write|MultiEdit');
+  assert.equal(regs.PreToolUse.matcher, 'Edit|Write|MultiEdit|Bash');
 });
 
 test('mergeEvent never clobbers pre-existing groups in the same event', () => {
@@ -131,7 +131,7 @@ test('installer merges all three hooks into a fresh settings.json', () => {
 
     // matchers match the contract
     const pre = settings.hooks.PreToolUse.find((g) => (g.hooks || []).some((h) => h.command.includes('pretooluse.js')));
-    assert.equal(pre.matcher, 'Edit|Write|MultiEdit');
+    assert.equal(pre.matcher, 'Edit|Write|MultiEdit|Bash');
     const post = settings.hooks.PostToolUse.find((g) => (g.hooks || []).some((h) => h.command.includes('posttooluse.js')));
     assert.equal(post.matcher, '*');
     // UserPromptSubmit is not a tool event → the group carries NO matcher key at all.

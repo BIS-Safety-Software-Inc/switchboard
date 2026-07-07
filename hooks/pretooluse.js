@@ -14,7 +14,14 @@
  *   - If owned by someone else, emit
  *       {"systemMessage":"⚠ switchboard: <file> is owned by <KEY> (<assignee>)
  *        — coordinate before editing"}.
- *   - ALWAYS allow (warn-only). Never emit a permission decision / never block.
+ *   - Ownership guard: ALWAYS allow (warn-only), never blocks an edit.
+ *   - GATE 2 (added 2026-07-07, owner directive): Bash commands running
+ *     `swb claim`/`swb done` are DENIED unless they carry --approved. This is
+ *     the human claim/finish gate rebuilt at the hook layer, where
+ *     --dangerously-skip-permissions cannot reach (the flag skips permission
+ *     evaluation; lifecycle hooks still fire). The deny reason instructs the
+ *     agent to ask its human in chat, then re-run with --approved. Teams dial
+ *     it off with "gate2": "off" in the repo's .swb.json.
  *   - NEVER throw: any internal error → exit 0 + one events.jsonl line.
  *
  * INTEGRATION SEAM (thin, documented):
@@ -150,6 +157,37 @@ function main() {
     const toolInput = input.tool_input || input.toolInput || {};
     const filePath = toolInput.file_path || toolInput.filePath || '';
     const myAssignee = input.assignee || process.env.SWB_VIEWER || '';
+
+    // ── GATE 2: claim/done need the human's word — even under skip-permissions ──
+    if (toolName === 'Bash') {
+      const cmd = String(toolInput.command || '');
+      // Anchored to a command position (start / after ; && || | or newline) so
+      // prose or doc edits that merely MENTION the words are not gated. The
+      // invocation may be the bare shim (`swb`), an unquoted path ending in
+      // swb/swb.js, or a QUOTED path that can contain spaces ("…/AI Hackathon/…"
+      // — the exact form that bypassed the first version of this gate, live).
+      const SWB_INVOKE = String.raw`(?:node\s+(?:"[^"\n]*swb(?:\.js)?"|'[^'\n]*swb(?:\.js)?'|\S*swb(?:\.js)?)|"[^"\n]*swb"|'[^'\n]*swb'|\S*swb)`;
+      const gateRe = new RegExp(String.raw`(^|[;&|]\s*|\n\s*)${SWB_INVOKE}\s+(claim|done)\b`);
+      const gm = gateRe.exec(cmd);
+      if (gm && !/\s--approved\b/.test(cmd)) {
+        const cfg = readJsonSafe(path.join(cwd, '.swb.json')) || {};
+        if (String(cfg.gate2 || 'on').toLowerCase() !== 'off') {
+          const verb = gm[2];
+          logEvent({ ts: new Date().toISOString(), cmd: 'hook:gate2', args: { verb, blocked: true }, sessionId, ok: true, ms: Date.now() - start });
+          process.stdout.write(JSON.stringify({
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse',
+              permissionDecision: 'deny',
+              permissionDecisionReason:
+                `GATE 2 (switchboard): ${verb === 'claim' ? 'taking a ticket' : 'finishing a ticket'} needs your human's explicit yes — even with permissions skipped. ` +
+                `Ask them in the conversation ("want me to ${verb} it?"). Once they say yes, re-run this exact command with --approved appended. ` +
+                `Never add --approved without their yes in THIS conversation. (Team off-switch: "gate2": "off" in .swb.json.)`,
+            },
+          }));
+          process.exit(0);
+        }
+      }
+    }
 
     if (WATCHED_TOOLS.has(toolName) && filePath) {
       const ownership = readJsonSafe(ownershipPath());

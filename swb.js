@@ -717,7 +717,7 @@ async function verbClaim(ctx) {
     own[key] = { files, assignee: viewer.name, sessionId, ts: new Date().toISOString() };
     writeOwnership(own);
     // claim comment listing files
-    await postComment(issue.id, `Claimed ${key}. Files: ${files.length ? files.join(', ') : '(none declared)'}`, viewer.name, apiKey);
+    await postComment(issue.id, `Claimed ${key}${args.approved ? ' (human-approved)' : ''}. Files: ${files.length ? files.join(', ') : '(none declared)'}`, viewer.name, apiKey);
     out.write(`✔ claimed ${key} → ${viewer.name} · In Progress · files: ${files.join(', ') || '(none)'}\n`);
     // Print the FULL ticket at the moment of claiming: the description is the
     // work spec, and an agent must never start building from the title alone.
@@ -1123,6 +1123,9 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--hook') { args.hook = true; continue; }
     if (a === '--fix') { args.fix = true; continue; }
+    // Gate-2 handshake: appended by the agent ONLY after its human said yes in
+    // the conversation (the pretooluse hook denies claim/done without it).
+    if (a === '--approved') { args.approved = true; continue; }
     if (a.startsWith('--')) {
       const name = a.slice(2);
       const next = argv[i + 1];

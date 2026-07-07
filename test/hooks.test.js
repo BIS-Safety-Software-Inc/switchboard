@@ -428,3 +428,40 @@ test('glob matcher: *, **, ? and separators', () => {
   // windows backslash paths normalize
   assert.ok(globMatch('src/player/*', 'src\\player\\shell.tsx'));
 });
+
+// ── GATE 2: claim/done via Bash are denied without --approved — the human gate
+// that survives --dangerously-skip-permissions (hooks fire regardless).
+test('pretooluse gate2: denies swb claim without --approved, allows with it, respects off-switch', () => {
+  const home = makeHome({ ownership: {} });
+  const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swb-g2-'));
+  try {
+    const mk = (command) => ({ session_id: 'g2', cwd: repoDir, tool_name: 'Bash', tool_input: { command } });
+    // no .swb.json → gate2 defaults ON
+    let r = runHook(HOOKS.pre, mk('swb claim HAC-9 --files "src/**"'), home);
+    assert.strictEqual(r.status, 0);
+    let parsed = JSON.parse(r.out);
+    assert.strictEqual(parsed.hookSpecificOutput.permissionDecision, 'deny', 'claim denied without approval');
+    assert.match(parsed.hookSpecificOutput.permissionDecisionReason, /GATE 2/);
+    // done also gated, incl. node …/swb.js form
+    r = runHook(HOOKS.pre, mk('node "/x/switchboard/swb.js" done HAC-9 --pr https://x/1'), home);
+    parsed = JSON.parse(r.out);
+    assert.strictEqual(parsed.hookSpecificOutput.permissionDecision, 'deny', 'done denied without approval');
+    // --approved passes through (no output at all)
+    r = runHook(HOOKS.pre, mk('swb claim HAC-9 --files "src/**" --approved'), home);
+    assert.strictEqual(r.out.trim(), '', 'approved claim not blocked');
+    // quoted path WITH SPACES — the exact form that bypassed the gate live
+    r = runHook(HOOKS.pre, mk('cd ~/x && node "/Users/t/AI Hackathon/switchboard/swb.js" claim HAC-9 --files "s/**"'), home);
+    parsed = JSON.parse(r.out);
+    assert.strictEqual(parsed.hookSpecificOutput.permissionDecision, 'deny', 'quoted spaced path gated');
+    // a command that merely MENTIONS the words mid-text is NOT gated
+    r = runHook(HOOKS.pre, mk('python3 - <<X\nprint("docs say: swb claim HAC-1")\nX'), home);
+    assert.strictEqual(r.out.trim(), '', 'mention-only text not gated');
+    // reads are never gated
+    r = runHook(HOOKS.pre, mk('swb sync'), home);
+    assert.strictEqual(r.out.trim(), '', 'sync never gated');
+    // team off-switch in .swb.json
+    fs.writeFileSync(path.join(repoDir, '.swb.json'), JSON.stringify({ teamKey: 'HAC', gate2: 'off' }));
+    r = runHook(HOOKS.pre, mk('swb claim HAC-9 --files "src/**"'), home);
+    assert.strictEqual(r.out.trim(), '', 'gate2 off → no deny');
+  } finally { cleanup(home); try { fs.rmSync(repoDir, { recursive: true, force: true }); } catch (_) {} }
+});

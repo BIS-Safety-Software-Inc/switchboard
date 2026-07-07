@@ -23,6 +23,14 @@ The human speaks English. **You speak `swb`.** Every board write goes through an
 
 ## MUSTs (non-negotiable — this is the coordination floor)
 
+- **Gate 2 is built into the kit and survives skip-permissions.** `swb claim` and
+  `swb done` are DENIED by a hook unless the command carries `--approved`. When
+  you hit the denial: ask your human in the conversation, get their explicit
+  yes, then re-run with `--approved`. NEVER append `--approved` without that
+  yes — the flag is logged and the claim comment says "human-approved"; a lie
+  is visible forever. Teams that want autonomous claiming set `"gate2": "off"`
+  in `.swb.json` (a planning-day decision, made out loud).
+
 - **Read the full ticket before building.** `swb claim` prints the spec when you claim; for any OTHER ticket a digest line points you at (an @you question, a teammate's change), run `swb show <KEY>` before acting. Titles are headlines, not specs — never build from a title.
 
 1. **Claim before you edit.** Never edit a file for a ticket you have not
