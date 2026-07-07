@@ -75,7 +75,7 @@ Options:
   --force                  Allow an exported LINEAR_API_KEY (or a prompt) to REPLACE the
                            key already saved in ~/.switchboard/env.
   --no-prompt, -y          Never prompt; skip the key if none is supplied.
-  --no-open                Don't open PLAYBOOK.html in the browser at the end.
+  --no-open                Don't open FLOOR-TOUR.html in the browser.
   --help, -h               Show this help.
 
 Environment:
@@ -450,21 +450,21 @@ function installTourCommand(claudeDir) {
   ok(`/swb-tour command at ${dest}`);
 }
 
-// ── open the playbook ──────────────────────────────────────────────────────────
-// Best-effort, fail-soft: a broken opener must never fail the install. Skipped in
-// non-TTY runs (tests, CI) and with --no-open.
-function openPlaybook(args) {
-  const playbook = path.join(REPO_ROOT, 'PLAYBOOK.html');
-  if (!fs.existsSync(playbook)) return;
-  info(`playbook: ${playbook}`);
+// ── browser opener (best-effort, fail-soft) ────────────────────────────────────
+// A broken opener must never fail the install. Skipped in non-TTY runs (tests,
+// CI) and with --no-open.
+function openInBrowser(args, fileName, label) {
+  const target = path.join(REPO_ROOT, fileName);
+  if (!fs.existsSync(target)) return;
+  info(`${label}: ${target}`);
   if (args.noOpen || !process.stdout.isTTY) return;
   try {
-    if (process.platform === 'darwin') cp.spawn('open', [playbook], { detached: true, stdio: 'ignore' }).unref();
-    else if (IS_WINDOWS) cp.spawn('cmd', ['/c', 'start', '', playbook], { detached: true, stdio: 'ignore' }).unref();
-    else cp.spawn('xdg-open', [playbook], { detached: true, stdio: 'ignore' }).unref();
-    ok('opened PLAYBOOK.html in your browser');
+    if (process.platform === 'darwin') cp.spawn('open', [target], { detached: true, stdio: 'ignore' }).unref();
+    else if (IS_WINDOWS) cp.spawn('cmd', ['/c', 'start', '', target], { detached: true, stdio: 'ignore' }).unref();
+    else cp.spawn('xdg-open', [target], { detached: true, stdio: 'ignore' }).unref();
+    ok(`opened ${fileName} in your browser`);
   } catch (err) {
-    warn(`could not open the playbook automatically (${err.message}) — open it yourself: ${playbook}`);
+    warn(`could not open ${fileName} automatically (${err.message}) — open it yourself: ${target}`);
   }
 }
 
@@ -538,6 +538,10 @@ async function main() {
 
   console.log(color('1', 'switchboard installer'));
 
+  // First and foremost: the Floor Tour — the click-through of the whole system.
+  // Opens immediately so the human reads WHAT this is while the installer works.
+  openInBrowser(args, 'FLOOR-TOUR.html', 'floor tour (read this while I work)');
+
   step('1/7  Checking Node');
   verifyNode();
 
@@ -563,7 +567,8 @@ async function main() {
   // step 7 = doctor
   runDoctor(swbDir);
 
-  openPlaybook(args);
+  // Reference doc: print the path, don't open a second tab over the Floor Tour.
+  info(`reference playbook: ${path.join(REPO_ROOT, 'PLAYBOOK.html')}`);
 
   console.log(`\n${color('32', 'Done.')} switchboard installed. Next: open a Claude Code session and type  /swb-tour`);
 }

@@ -49,7 +49,9 @@ hooks or overwrites your settings):
 4. registers the three Claude Code hooks by **merging** into `~/.claude/settings.json` (your existing hooks are backed up to `settings.json.swb-bak` and left untouched)
 5. drops a `swb` shim on your `PATH`
 6. installs the `/swb-tour` command into `~/.claude/commands/`
-7. runs `swb doctor`, prints the result, and opens `PLAYBOOK.html` in your browser (skip with `--no-open`)
+7. runs `swb doctor` and prints the result
+
+**First thing it does** (before step 1): opens `FLOOR-TOUR.html` in your browser — the click-through of the whole system. Read it while the installer works (skip with `--no-open`). The reference `PLAYBOOK.html` path is printed at the end.
 
 ### After installing: take the tour
 
