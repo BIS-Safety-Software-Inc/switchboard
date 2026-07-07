@@ -1,59 +1,57 @@
 {
   "fetchedAt": "2026-07-06T14:22:00.000Z",
   "teamKey": "HAC",
+  "viewer": { "name": "Marc Chen", "displayName": "marc" },
+  "states": {
+    "Triage": { "linearName": "Backlog", "id": "st-backlog" },
+    "Ready": { "linearName": "Todo", "id": "st-todo" },
+    "In Progress": { "linearName": "In Progress", "id": "st-inprogress" },
+    "In Review": { "linearName": "In Review", "id": "st-inreview" },
+    "Done": { "linearName": "Done", "id": "st-done" }
+  },
   "issues": [
     {
       "id": "iss-23",
       "key": "HAC-23",
       "title": "Quiz progress schema",
-      "createdAt": "2026-07-06T10:00:00.000Z",
-      "updatedAt": "2026-07-06T10:00:00.000Z",
       "state": "In Progress",
       "assignee": "sarah",
-      "labels": []
+      "createdAt": "2026-07-06T10:00:00.000Z",
+      "updatedAt": "2026-07-06T10:00:00.000Z"
     },
     {
       "id": "iss-31",
       "key": "HAC-31",
       "title": "Player UI shell for the lesson runtime",
-      "createdAt": "2026-07-06T09:00:00.000Z",
-      "updatedAt": "2026-07-06T14:20:00.000Z",
       "state": "In Progress",
-      "assignee": "marc",
-      "labels": []
+      "assignee": "sarah",
+      "createdAt": "2026-07-06T09:00:00.000Z",
+      "updatedAt": "2026-07-06T14:20:00.000Z"
     },
     {
       "id": "iss-40",
       "key": "HAC-40",
       "title": "New triage ticket about auth headers",
-      "createdAt": "2026-07-06T14:19:00.000Z",
-      "updatedAt": "2026-07-06T14:19:00.000Z",
       "state": "Triage",
       "assignee": null,
-      "labels": []
+      "createdAt": "2026-07-06T14:19:00.000Z",
+      "updatedAt": "2026-07-06T14:19:00.000Z"
     }
   ],
   "comments": [
     {
-      "id": "cmt-1",
-      "key": "HAC-23",
-      "body": "@marc does quiz_progress need a composite key per attempt?",
+      "issueKey": "HAC-23",
       "author": "sarah",
-      "createdAt": "2026-07-06T14:18:00.000Z"
+      "body": "@marc does quiz_progress need a composite key per attempt?",
+      "createdAt": "2026-07-06T14:18:00.000Z",
+      "discovery": false
     },
     {
-      "id": "cmt-2",
-      "key": "HAC-18",
-      "body": "auth middleware strips X-Custom headers",
+      "issueKey": "HAC-18",
       "author": "dana",
-      "createdAt": "2026-07-06T14:17:00.000Z"
+      "body": "auth middleware strips X-Custom headers",
+      "createdAt": "2026-07-06T14:17:00.000Z",
+      "discovery": true
     }
-  ],
-  "states": {
-    "Backlog": "st-backlog",
-    "Todo": "st-todo",
-    "In Progress": "st-inprogress",
-    "In Review": "st-inreview",
-    "Done": "st-done"
-  }
+  ]
 }

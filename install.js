@@ -35,8 +35,11 @@ const warn = (s) => console.log(`${color('33', '!')} ${s}`);
 const step = (s) => console.log(`\n${color('1', s)}`);
 
 // ── HOME resolution (env-overridable so tests can point at a temp dir) ───────
-// NOTE: SWB_HOME is reserved by swb.js to mean the ~/.switchboard DIRECTORY (not the
-// user home). To override the user home for tests, use SWB_INSTALL_HOME instead.
+// NOTE: SWITCHBOARD_HOME is the ONE name (per CONTRACTS) for overriding the
+// ~/.switchboard state/config DIRECTORY — swb.js, the hooks, and this installer all
+// honor it. That is NOT the same as the user home. To override the user *home* for
+// tests, use SWB_INSTALL_HOME instead. The installer never sets SWITCHBOARD_HOME; by
+// default the tree lives under the resolved user home.
 function resolveHome() {
   if (process.env.SWB_INSTALL_HOME) return process.env.SWB_INSTALL_HOME;
   if (IS_WINDOWS) {
@@ -66,14 +69,20 @@ Usage:
   node install.js [options]
 
 Options:
-  --key <LINEAR_API_KEY>   Provide the Linear API key non-interactively.
-  --force                  Overwrite an existing LINEAR_API_KEY in ~/.switchboard/env.
+  --key <LINEAR_API_KEY>   Provide the Linear API key non-interactively (always saved,
+                           replacing any existing saved key).
+  --force                  Allow an exported LINEAR_API_KEY (or a prompt) to REPLACE the
+                           key already saved in ~/.switchboard/env.
   --no-prompt, -y          Never prompt; skip the key if none is supplied.
   --help, -h               Show this help.
 
 Environment:
-  LINEAR_API_KEY           Used if --key is not given.
-  SWB_INSTALL_HOME         Override the user home directory (advanced / testing).
+  LINEAR_API_KEY           Seeds the saved key when none exists yet. It does NOT overwrite
+                           an already-saved key unless you also pass --force (use --key to
+                           set a new key unconditionally).
+  SWITCHBOARD_HOME         Override the ~/.switchboard state/config directory. The installer
+                           itself never sets this; set it yourself to relocate the tree.
+  SWB_INSTALL_HOME         Override the user home directory (advanced / testing only).
 `);
 }
 
@@ -99,9 +108,15 @@ function ensureTree(swbDir) {
   // Seed empty state files only if absent — never truncate existing state.
   ensureFile(path.join(swbDir, 'events.jsonl'), '');
   ensureFile(path.join(swbDir, 'ownership.json'), '{}\n');
+  // Seed an empty cache.json shaped to CANONICAL SCHEMA v2 (swb.js overwrites it on first
+  // fetch). Keys mirror the contract so a never-synced tree still parses cleanly.
   ensureFile(
     path.join(swbDir, 'cache.json'),
-    JSON.stringify({ fetchedAt: null, teamKey: null, issues: [], comments: [], states: {} }, null, 2) + '\n'
+    JSON.stringify(
+      { fetchedAt: null, teamKey: null, viewer: null, states: {}, issues: [], comments: [] },
+      null,
+      2
+    ) + '\n'
   );
 
   ok(`state tree at ${swbDir}`);
@@ -129,11 +144,26 @@ function serializeEnv(map) {
   return Object.entries(map).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
 }
 
-// Resolve the key the user is *explicitly* supplying this run (flag > env > prompt).
-// Returns '' when the user supplied nothing new — the caller then keeps whatever is on disk.
+// Resolve the key the user is supplying this run, honoring the no-clobber rule:
+//
+//   A saved key is REPLACED only when the user is explicit — i.e. passes --key or --force.
+//   A shell-exported LINEAR_API_KEY on its own must NEVER silently clobber a saved key;
+//   it only SEEDS a key when none is saved yet.
+//
+// Returns '' when nothing should change on disk — the caller then keeps whatever is saved.
 async function resolveExplicitKey(args, existingKey) {
+  // --key is the most explicit signal of intent: always apply it (seeds or replaces).
   if (args.key) return args.key.trim();
-  if (process.env.LINEAR_API_KEY) return process.env.LINEAR_API_KEY.trim();
+
+  // A shell-exported LINEAR_API_KEY seeds a missing key, but only replaces a saved one
+  // when the user ALSO passes --force. Without --force + an existing key, it's ignored.
+  const envKey = (process.env.LINEAR_API_KEY || '').trim();
+  if (envKey) {
+    if (!existingKey || args.force) return envKey;
+    return ''; // saved key present and no --force → do not clobber
+  }
+
+  // No key on the command line or in the environment.
   if (args.noPrompt || !process.stdin.isTTY) return ''; // nothing new offered
   if (existingKey && !args.force) return ''; // already have one; don't nag
 
@@ -185,7 +215,10 @@ function hookRegistrations() {
   const nodeBin = 'node';
   const hookCmd = (file) => `${nodeBin} "${path.join(REPO_ROOT, 'hooks', file)}"`;
   return {
-    UserPromptSubmit: { matcher: '', command: hookCmd('userpromptsubmit.js') },
+    // UserPromptSubmit is NOT a tool event — it has no tool to match against, so we emit
+    // NO matcher key at all (matcher omitted). A matcher: "" here would be a meaningless
+    // (and technically wrong) field for a non-tool event.
+    UserPromptSubmit: { command: hookCmd('userpromptsubmit.js') },
     PostToolUse: { matcher: '*', command: hookCmd('posttooluse.js') },
     PreToolUse: { matcher: 'Edit|Write|MultiEdit', command: hookCmd('pretooluse.js') },
   };
@@ -206,7 +239,11 @@ function mergeEvent(settings, eventName, reg) {
   if (groups.some((g) => g && groupHasCommand(g, reg.command))) return false;
 
   // Append a fresh, isolated group so we never mutate the user's existing groups.
-  groups.push({ matcher: reg.matcher, hooks: [{ type: 'command', command: reg.command }] });
+  // Only carry a `matcher` key when the registration actually has one — non-tool
+  // events (UserPromptSubmit) emit a group with no matcher field at all.
+  const group = { hooks: [{ type: 'command', command: reg.command }] };
+  if (Object.prototype.hasOwnProperty.call(reg, 'matcher')) group.matcher = reg.matcher;
+  groups.push(group);
   return true;
 }
 
@@ -292,6 +329,35 @@ function onPath(dir) {
 }
 
 // ── run swb doctor ─────────────────────────────────────────────────────────────
+const DOCTOR_TIMEOUT_MS = 30000;
+
+// swb resolves its team from the .swb.json in the directory it runs in. Validate against
+// the user's own project when they launched the installer from one (their cwd has a
+// .swb.json), otherwise fall back to the switchboard repo root.
+function doctorCwd() {
+  const userCwd = process.cwd();
+  if (userCwd !== REPO_ROOT && fs.existsSync(path.join(userCwd, '.swb.json'))) return userCwd;
+  return REPO_ROOT;
+}
+
+// Best-effort read of the team swb doctor will validate against, so we can print a note.
+// Mirrors swb's resolution order: .swb.json teamKey → SWB_TEAM_KEY.
+function resolvedTeam(cwd, swbDir) {
+  try {
+    const cfgPath = path.join(cwd, '.swb.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (cfg && cfg.teamKey) return { team: cfg.teamKey, source: `.swb.json in ${cwd}` };
+    }
+  } catch (_) { /* ignore unparseable config; swb will surface it */ }
+  const envMap = fs.existsSync(path.join(swbDir, 'env'))
+    ? parseEnvFile(fs.readFileSync(path.join(swbDir, 'env'), 'utf8'))
+    : {};
+  const envTeam = envMap.SWB_TEAM_KEY || (process.env.SWB_TEAM_KEY || '').trim();
+  if (envTeam) return { team: envTeam, source: 'SWB_TEAM_KEY' };
+  return { team: null, source: null };
+}
+
 function runDoctor(swbDir) {
   step('Running: swb doctor');
   const swbTarget = path.join(REPO_ROOT, 'swb.js');
@@ -299,16 +365,27 @@ function runDoctor(swbDir) {
     warn(`swb.js not found at ${swbTarget}; skipping doctor. Run "swb doctor" after the CLI is present.`);
     return;
   }
-  // swb.js reads SWB_HOME as the ~/.switchboard directory it operates on. Point it at
-  // the exact tree we just provisioned so doctor never writes to a different location.
-  const childEnv = { ...process.env, SWB_HOME: swbDir };
+
+  const cwd = doctorCwd();
+  const { team, source } = resolvedTeam(cwd, swbDir);
+  if (team) info(`doctor will validate against team ${team} (${source}), running in ${cwd}`);
+  else info(`doctor will run in ${cwd} (no team resolved yet — add a .swb.json teamKey or SWB_TEAM_KEY)`);
+
+  // SWITCHBOARD_HOME is the ONE override name swb.js honors for its ~/.switchboard dir.
+  // Point it at the exact tree we just provisioned so doctor never writes elsewhere.
+  const childEnv = { ...process.env, SWITCHBOARD_HOME: swbDir };
   const res = cp.spawnSync(process.execPath, [swbTarget, 'doctor'], {
     stdio: 'inherit',
     env: childEnv,
-    cwd: REPO_ROOT,
+    cwd,
+    timeout: DOCTOR_TIMEOUT_MS,
   });
   if (res.error) {
-    warn(`could not run swb doctor: ${res.error.message}`);
+    if (res.error.code === 'ETIMEDOUT') {
+      warn(`swb doctor timed out after ${DOCTOR_TIMEOUT_MS / 1000}s — check network / LINEAR_API_KEY, then run "swb doctor" manually.`);
+    } else {
+      warn(`could not run swb doctor: ${res.error.message}`);
+    }
   } else if (res.status !== 0) {
     warn(`swb doctor exited ${res.status} — see output above (often just a missing LINEAR_API_KEY).`);
   }

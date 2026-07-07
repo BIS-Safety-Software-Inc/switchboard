@@ -63,6 +63,25 @@ test('mergeEvent appends a group and is idempotent', () => {
   assert.equal(settings.hooks.PreToolUse.length, 1, 'no duplicate group');
 });
 
+test('mergeEvent omits the matcher key for a matcher-less registration', () => {
+  const settings = {};
+  // A registration with NO matcher property (non-tool event, e.g. UserPromptSubmit).
+  const reg = { command: 'node "/x/hooks/userpromptsubmit.js"' };
+
+  assert.equal(installer.mergeEvent(settings, 'UserPromptSubmit', reg), true);
+  const group = settings.hooks.UserPromptSubmit[0];
+  assert.deepEqual(group, { hooks: [{ type: 'command', command: reg.command }] });
+  assert.equal(Object.prototype.hasOwnProperty.call(group, 'matcher'), false, 'no matcher key emitted');
+});
+
+test('hookRegistrations gives UserPromptSubmit no matcher, tool events a matcher', () => {
+  const regs = installer.hookRegistrations();
+  assert.equal(Object.prototype.hasOwnProperty.call(regs.UserPromptSubmit, 'matcher'), false,
+    'UserPromptSubmit registration carries no matcher');
+  assert.equal(regs.PostToolUse.matcher, '*');
+  assert.equal(regs.PreToolUse.matcher, 'Edit|Write|MultiEdit');
+});
+
 test('mergeEvent never clobbers pre-existing groups in the same event', () => {
   // A user already has an Edit|Write PreToolUse hook of their own.
   const preExisting = {
@@ -115,8 +134,9 @@ test('installer merges all three hooks into a fresh settings.json', () => {
     assert.equal(pre.matcher, 'Edit|Write|MultiEdit');
     const post = settings.hooks.PostToolUse.find((g) => (g.hooks || []).some((h) => h.command.includes('posttooluse.js')));
     assert.equal(post.matcher, '*');
+    // UserPromptSubmit is not a tool event → the group carries NO matcher key at all.
     const ups = settings.hooks.UserPromptSubmit.find((g) => (g.hooks || []).some((h) => h.command.includes('userpromptsubmit.js')));
-    assert.equal(ups.matcher, '');
+    assert.equal(Object.prototype.hasOwnProperty.call(ups, 'matcher'), false, 'UserPromptSubmit group must have no matcher key');
   });
 });
 
@@ -198,21 +218,57 @@ test('installer is idempotent — second run adds no duplicate hooks', () => {
   });
 });
 
-test('installer keeps an existing key and does not overwrite without --force', () => {
-  withTempHome((home) => {
-    // First install with a key.
-    runInstaller(home, { LINEAR_API_KEY: 'lin_api_ORIGINAL' });
-    // Second install offering a different key WITHOUT --force keeps the original.
-    runInstaller(home, { LINEAR_API_KEY: 'lin_api_DIFFERENT' });
-    const env = fs.readFileSync(path.join(home, '.switchboard', 'env'), 'utf8');
-    // env var takes priority over file per resolveKey, so DIFFERENT wins here (env is explicit intent).
-    // To assert the no-clobber-of-file path, drive it purely through the file:
-    assert.match(env, /LINEAR_API_KEY=lin_api_DIFFERENT/);
+function savedKey(home) {
+  const env = fs.readFileSync(path.join(home, '.switchboard', 'env'), 'utf8');
+  const m = env.match(/^LINEAR_API_KEY=(.+)$/m);
+  return m ? m[1].trim() : null;
+}
 
-    // Now run with NO env key at all → the file value must be preserved.
+test('an exported LINEAR_API_KEY seeds a key only when none is saved yet', () => {
+  withTempHome((home) => {
+    // Fresh tree, no saved key → the exported env var SEEDS it.
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_SEED' });
+    assert.equal(savedKey(home), 'lin_api_SEED', 'env var seeds the initial key');
+  });
+});
+
+test('an exported LINEAR_API_KEY alone does NOT clobber a saved key', () => {
+  withTempHome((home) => {
+    // Save an original key.
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_ORIGINAL' });
+    assert.equal(savedKey(home), 'lin_api_ORIGINAL');
+
+    // Re-run with a DIFFERENT exported key but NO --key and NO --force.
+    // Per the no-clobber rule, the saved key must survive untouched.
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_DIFFERENT' });
+    assert.equal(savedKey(home), 'lin_api_ORIGINAL', 'shell-exported key must not silently clobber the saved key');
+  });
+});
+
+test('--force lets an exported LINEAR_API_KEY replace a saved key', () => {
+  withTempHome((home) => {
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_ORIGINAL' });
+    // With --force, the exported key is allowed to replace the saved one.
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_FORCED' }, ['--force']);
+    assert.equal(savedKey(home), 'lin_api_FORCED', '--force + env key replaces the saved key');
+  });
+});
+
+test('--key always replaces the saved key, even without --force', () => {
+  withTempHome((home) => {
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_ORIGINAL' });
+    // --key is explicit intent → replaces unconditionally. No exported env key here.
+    runInstaller(home, {}, ['--key', 'lin_api_VIAFLAG']);
+    assert.equal(savedKey(home), 'lin_api_VIAFLAG', '--key replaces the saved key');
+  });
+});
+
+test('installer preserves the saved key when no key is offered at all', () => {
+  withTempHome((home) => {
+    runInstaller(home, { LINEAR_API_KEY: 'lin_api_KEEP' });
+    // No --key, no --force, no exported LINEAR_API_KEY → nothing to change.
     runInstaller(home, { LINEAR_API_KEY: '' });
-    const env2 = fs.readFileSync(path.join(home, '.switchboard', 'env'), 'utf8');
-    assert.match(env2, /LINEAR_API_KEY=lin_api_DIFFERENT/, 'file key preserved when no override given');
+    assert.equal(savedKey(home), 'lin_api_KEEP', 'saved key preserved when no override given');
   });
 });
 

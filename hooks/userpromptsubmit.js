@@ -152,6 +152,18 @@ function hhmm(d) {
 }
 function tsMs(v) { const n = Date.parse(v); return Number.isFinite(n) ? n : 0; }
 function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function firstWord(s) { return String(s == null ? '' : s).trim().split(/\s+/)[0] || ''; }
+
+// CANONICAL SCHEMA v2: cache.viewer is an OBJECT {name, displayName} (never a
+// bare string). Resolve it to the single name token used for @-mention matching.
+// Accepts a string too so callers that already hold a name (and the reference
+// test that passes 'marc' straight into buildItems) keep working.
+function viewerName(viewer) {
+  if (!viewer) return '';
+  if (typeof viewer === 'string') return viewer;
+  // Prefer displayName (the @-handle Linear surfaces) then fall back to name.
+  return String(viewer.displayName || viewer.name || '');
+}
 
 // Build the delta item list from cache + ownership since the cursor's lastSeenTs.
 // Item order within a category preserves cache order; @you always sorts first.
@@ -162,12 +174,18 @@ function buildItems(cache, ownership, viewer, sinceMs) {
   const byKey = new Map();
   for (const it of issues) { if (it && it.key) byKey.set(it.key, it); }
 
-  const you = (viewer || '').toLowerCase();
+  // viewer may arrive as a v2 {name, displayName} object OR a bare name string
+  // (the reference test passes 'marc' directly). Resolve to the handle token.
+  const you = viewerName(viewer).toLowerCase();
+  // Match on the FIRST word of the handle so a "Turni Saha" viewer still keys
+  // off "turni" — identical to swb.js's firstWord(viewerName) mention logic.
+  const youToken = firstWord(you);
   // Only an actual @-mention counts (word-boundaried), never a bare substring —
   // otherwise short names (sam→"same", ana→"banana") falsely promote comments to
-  // the top @you slot. Mirrors swb.js's `@` + first-word regex.
-  const mentionRe = you
-    ? new RegExp('@' + escapeRe(you) + '\\b', 'i')
+  // the top @you slot. This IS the @-word-boundary regex CONTRACTS.md mandates;
+  // v2 stores no mentions[] array, so the body is the ONLY source.
+  const mentionRe = youToken
+    ? new RegExp('@' + escapeRe(youToken) + '\\b', 'i')
     : null;
   const mentionsYou = (body) => {
     if (!mentionRe) return false;
@@ -183,12 +201,15 @@ function buildItems(cache, ownership, viewer, sinceMs) {
     if (created <= sinceMs) continue;
     const author = String(c.author || '');
     if (you && author.toLowerCase() === you) continue; // don't surface my own
-    const isDiscovery = c.discovery === true || c.meta === true;
+    // CANONICAL SCHEMA v2: comments[].discovery is the ONLY meta flag.
+    const isDiscovery = c.discovery === true;
     if (isDiscovery) {
       otherComments.push({ kind: 'disc', c });
       continue;
     }
-    if (mentionsYou(c.body) || (c.mentions && c.mentions.map(String).map(s => s.toLowerCase()).includes(you))) {
+    // v2: mentions are NEVER stored — compute them from the body with the
+    // word-boundary @name regex. There is no c.mentions array to consult.
+    if (mentionsYou(c.body)) {
       youLines.push({ kind: 'you', c });
     } else {
       otherComments.push({ kind: 'other-comment', c });

@@ -630,7 +630,8 @@ const SWB_TEST_LABEL = 'swb-test';
 
 // Ensure the swb-test label exists on the team, returning its id (create if missing).
 async function ensureSwbTestLabel(teamId, apiKey) {
-  const q = `query($teamId: ID!) { team(id: $teamId) { labels(first: 250) { nodes { id name } } } }`;
+  // team(id:) takes String! (iter-2 P0 — ID! is rejected at query validation).
+  const q = `query($teamId: String!) { team(id: $teamId) { labels(first: 250) { nodes { id name } } } }`;
   const d = await swb.linear(q, { teamId }, apiKey);
   const existing = (d.team.labels.nodes || []).find((l) => l.name === SWB_TEST_LABEL);
   if (existing) return existing.id;
@@ -678,8 +679,23 @@ async function teardownSwbTestIssues(teamKey, apiKey) {
   return deleted;
 }
 
+// Attach the swb-test label to an already-created issue (by identifier). Used so
+// an issue the CLI `new` verb creates — which does NOT self-label — is still
+// guaranteed to be reaped by teardown. Returns the issue's id.
+async function labelIssueSwbTest(teamKey, identifier, apiKey) {
+  const team = await swb.getTeamByKey(teamKey, apiKey);
+  const labelId = await ensureSwbTestLabel(team.id, apiKey);
+  const found = await swb.findIssueByKey(teamKey, identifier, apiKey);
+  const existing = ((found.labels && found.labels.nodes) || []).map((l) => l.id);
+  const m = `mutation($id: String!, $labelIds: [String!]) {
+    issueUpdate(id: $id, input: { labelIds: $labelIds }) { success } }`;
+  const r = await swb.linear(m, { id: found.id, labelIds: existing.concat([labelId]) }, apiKey);
+  if (!r.issueUpdate || !r.issueUpdate.success) throw new Error('labelIssueSwbTest failed');
+  return found.id;
+}
+
 // Expose the helpers so hooks.test.js / a future integration harness can reuse them.
-module.exports = { ensureSwbTestLabel, createTestIssue, listSwbTestIssues, teardownSwbTestIssues, SWB_TEST_LABEL };
+module.exports = { ensureSwbTestLabel, createTestIssue, listSwbTestIssues, teardownSwbTestIssues, labelIssueSwbTest, SWB_TEST_LABEL };
 
 const LIVE_KEY = process.env.SWB_LIVE_LINEAR_KEY;
 const LIVE_TEAM = process.env.SWB_LIVE_TEAM_KEY || 'HAC';
@@ -713,4 +729,121 @@ test('swb-test hygiene: teardown never deletes an unlabelled issue', {
     const names = ((n.labels && n.labels.nodes) || []).map((l) => l.name);
     assert.ok(names.includes(SWB_TEST_LABEL), `teardown candidate ${n.identifier} must carry swb-test`);
   }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// LIVE ROUND-TRIP  (CONTRACTS.md DoD — REQUIRED; mocks self-confirmed the iter-1
+// P0s, so these drive the REAL CLI against the REAL HAC board.)
+// ────────────────────────────────────────────────────────────────────────────
+// Covers: sync populates a non-empty, schema-valid v2 cache; `new` lands in
+// Triage; `show` finds it; `claim` moves it In Progress + assigns the viewer;
+// `release` unassigns. Every issue the run creates carries the swb-test label,
+// and an unconditional teardown deletes ALL swb-test issues at the end so the
+// HAC board is left clean even if an assertion throws mid-flight.
+// ════════════════════════════════════════════════════════════════════════════
+
+// Drive a real CLI verb against Linear in an isolated home + repo cwd.
+function liveRunner() {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'swb-live-home-'));
+  fs.mkdirSync(path.join(home, 'cursors'), { recursive: true });
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'swb-live-repo-'));
+  fs.writeFileSync(
+    path.join(cwd, '.swb.json'),
+    JSON.stringify({ teamKey: LIVE_TEAM, testCommand: 'node -e "process.exit(0)"', defaultBranch: 'master' })
+  );
+  const prevHome = process.env.SWITCHBOARD_HOME;
+  process.env.SWITCHBOARD_HOME = home;
+  return {
+    home, cwd,
+    async run(argv) {
+      const out = sink();
+      const code = await swb.run(argv, { out, cwd, apiKey: LIVE_KEY, claimDelayMs: 1500 });
+      return { code, out: out.text() };
+    },
+    cleanup() {
+      if (prevHome === undefined) delete process.env.SWITCHBOARD_HOME; else process.env.SWITCHBOARD_HOME = prevHome;
+      rm(home); rm(cwd);
+    },
+  };
+}
+
+// Pull the created key (e.g. HAC-123) out of `swb new`'s success line.
+function keyFromNewOutput(out) {
+  const m = /✔ created\s+([A-Z][A-Z0-9]*-\d+)/.exec(out);
+  return m ? m[1] : null;
+}
+
+test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → release, then teardown', {
+  skip: LIVE_KEY ? false : 'set SWB_LIVE_LINEAR_KEY to run the live round-trip',
+}, async () => {
+  const R = liveRunner();
+  let createdKey = null;
+  try {
+    // ── sync: populates a non-empty, schema-valid v2 cache ────────────────────
+    const s = await R.run(['sync', '--session', 'live1']);
+    assert.strictEqual(s.code, 0, s.out);
+    const cache = JSON.parse(fs.readFileSync(path.join(R.home, 'cache.json'), 'utf8'));
+    // v2 schema invariants
+    assert.ok(cache.fetchedAt && !Number.isNaN(Date.parse(cache.fetchedAt)), 'cache.fetchedAt is an ISO date');
+    assert.strictEqual(cache.teamKey, LIVE_TEAM, 'cache.teamKey matches the team');
+    assert.ok(cache.viewer && typeof cache.viewer === 'object', 'cache.viewer is an object');
+    assert.ok(cache.viewer.name, 'cache.viewer.name present');
+    // states: swb name → { linearName, id } for all five swb states
+    for (const swbName of swb.REQUIRED_STATES) {
+      const st = cache.states && cache.states[swbName];
+      assert.ok(st && st.linearName && st.id, `states.${swbName} has {linearName,id}: ${JSON.stringify(st)}`);
+      assert.strictEqual(st.linearName, swb.STATE_MAP[swbName], `states.${swbName}.linearName maps correctly`);
+    }
+    assert.ok(Array.isArray(cache.issues), 'cache.issues is an array');
+    assert.ok(Array.isArray(cache.comments), 'cache.comments is an array');
+    // "non-empty schema-valid cache": states are fully populated (the always-present part)
+    assert.strictEqual(Object.keys(cache.states).length, swb.REQUIRED_STATES.length, 'all five states cached');
+
+    // ── new: ALWAYS lands in Triage ──────────────────────────────────────────
+    const title = `swb live probe ${Date.now()}`;
+    const n = await R.run(['new', title, '--body', 'live round-trip probe body']);
+    assert.strictEqual(n.code, 0, n.out);
+    assert.match(n.out, /\[Triage\]/);
+    createdKey = keyFromNewOutput(n.out);
+    assert.ok(createdKey, `parsed a created key from: ${n.out}`);
+    // label it immediately so teardown is guaranteed to reap it.
+    await labelIssueSwbTest(LIVE_TEAM, createdKey, LIVE_KEY);
+    // verify it really is in Triage (Backlog) via a live read
+    const created = await swb.findIssueByKey(LIVE_TEAM, createdKey, LIVE_KEY);
+    assert.strictEqual(swb.swbStateName(created.state.name), 'Triage', `new issue ${createdKey} is in Triage`);
+
+    // ── show: finds the issue by its parsed key (number + team.key filter) ────
+    const sh = await R.run(['show', createdKey]);
+    assert.strictEqual(sh.code, 0, sh.out);
+    assert.ok(sh.out.includes(createdKey) && sh.out.includes(title), `show output names the issue: ${sh.out}`);
+    assert.match(sh.out, /state: Triage/);
+
+    // ── claim: moves it In Progress + assigns the viewer ──────────────────────
+    const cl = await R.run(['claim', createdKey, '--files', 'src/live/*', '--session', 'live1']);
+    assert.strictEqual(cl.code, 0, cl.out);
+    assert.match(cl.out, new RegExp(`✔ claimed ${createdKey}`));
+    const afterClaim = await swb.findIssueByKey(LIVE_TEAM, createdKey, LIVE_KEY);
+    assert.strictEqual(swb.swbStateName(afterClaim.state.name), 'In Progress', 'claim moved it to In Progress');
+    const viewer = await swb.getViewer(LIVE_KEY);
+    assert.ok(afterClaim.assignee && afterClaim.assignee.id === viewer.id, 'claim assigned the viewer');
+    // ownership recorded
+    const own = JSON.parse(fs.readFileSync(path.join(R.home, 'ownership.json'), 'utf8'));
+    assert.ok(own[createdKey] && own[createdKey].files.includes('src/live/*'), 'ownership records the claim');
+
+    // ── release: unassigns, frees ownership, keeps branch ─────────────────────
+    const rel = await R.run(['release', createdKey]);
+    assert.strictEqual(rel.code, 0, rel.out);
+    assert.match(rel.out, new RegExp(`released ${createdKey}`));
+    const afterRelease = await swb.findIssueByKey(LIVE_TEAM, createdKey, LIVE_KEY);
+    assert.ok(!afterRelease.assignee, 'release cleared the assignee');
+    const own2 = JSON.parse(fs.readFileSync(path.join(R.home, 'ownership.json'), 'utf8'));
+    assert.ok(!own2[createdKey], 'release freed ownership');
+  } finally {
+    // Unconditional teardown: delete ALL swb-test issues so the board ends clean.
+    try { await teardownSwbTestIssues(LIVE_TEAM, LIVE_KEY); } catch (_) { /* best-effort */ }
+    R.cleanup();
+  }
+  // Board must have zero swb-test issues afterwards.
+  const after = await listSwbTestIssues(LIVE_TEAM, LIVE_KEY);
+  assert.strictEqual(after.length, 0, 'teardown left zero swb-test issues on the board');
 });

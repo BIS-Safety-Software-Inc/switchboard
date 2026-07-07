@@ -41,14 +41,20 @@ hooks or overwrites your settings):
 ### Providing the key without a prompt
 
 ```sh
-node install.js --key lin_api_XXXXXXXX          # pass it directly
-LINEAR_API_KEY=lin_api_XXXXXXXX node install.js  # or via env
+node install.js --key lin_api_XXXXXXXX          # pass it directly (always saved)
+LINEAR_API_KEY=lin_api_XXXXXXXX node install.js  # or via env (seeds only; see below)
 node install.js --no-prompt                      # skip the key for now, add it later
 ```
 
 Get a key from Linear → **Settings → API → Personal API keys**. It looks like
-`lin_api_...`. Re-running the installer keeps a key you already saved unless you
-pass a new one with `--key` (or `--force`).
+`lin_api_...`.
+
+**Key-overwrite rule (safe by default):** re-running the installer never
+silently replaces a key you already saved. A `LINEAR_API_KEY` exported in your
+shell only **seeds** the saved key when none exists yet — on its own it will
+**not** clobber an existing one. To deliberately change a saved key, pass a new
+value with `--key` (always replaces), or pass `--force` to let an exported
+`LINEAR_API_KEY` replace it.
 
 ### Finishing the PATH setup
 
@@ -137,6 +143,18 @@ Each repo that uses `swb` needs a `.swb.json` at its root:
 
 Without a resolvable team (`.swb.json` `teamKey` or the `SWB_TEAM_KEY` env var),
 `swb` refuses to run.
+
+### Relocating the state directory: `SWITCHBOARD_HOME`
+
+By default all switchboard state and config lives under `~/.switchboard/`. To put
+it somewhere else — a different disk, a per-project sandbox, CI — set
+`SWITCHBOARD_HOME` to the directory you want. `swb`, all three hooks, and the
+installer's `swb doctor` step all honor it. The installer **never sets this for
+you**; export it yourself before running commands:
+
+```sh
+export SWITCHBOARD_HOME="$HOME/.config/switchboard"
+```
 
 ---
 

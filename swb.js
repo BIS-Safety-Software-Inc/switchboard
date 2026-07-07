@@ -36,9 +36,9 @@ const STATE_TYPE = {
 
 // Paths & config
 function homeDir() {
-  // SWITCHBOARD_HOME is the shared override the hook pack + installer also honor;
-  // SWB_HOME kept as an alias. Falls back to ~/.switchboard.
-  return process.env.SWITCHBOARD_HOME || process.env.SWB_HOME || path.join(os.homedir(), '.switchboard');
+  // SWITCHBOARD_HOME is the ONE home-dir override the hook pack + installer also
+  // honor (CONTRACTS.md v2 — SWB_HOME is dead). Falls back to ~/.switchboard.
+  return process.env.SWITCHBOARD_HOME || path.join(os.homedir(), '.switchboard');
 }
 function paths() {
   const home = homeDir();
@@ -201,7 +201,7 @@ async function linear(query, variables, apiKey) {
 }
 
 async function getViewer(apiKey) {
-  const d = await linear('query { viewer { id name email } }', {}, apiKey);
+  const d = await linear('query { viewer { id name displayName email } }', {}, apiKey);
   return d.viewer;
 }
 
@@ -216,10 +216,14 @@ async function getTeamByKey(teamKey, apiKey) {
   return team;
 }
 
-// Fetch issues + recent comments for a team and rebuild the cache shape.
+// Fetch issues + recent comments for a team and rebuild the cache in the
+// CANONICAL SCHEMA v2 (CONTRACTS.md): viewer, states keyed by swb name →
+// {linearName,id}, issues[].state as swb names, comments[].issueKey + discovery.
 async function fetchTeamState(teamKey, apiKey) {
   const team = await getTeamByKey(teamKey, apiKey);
-  const q = `query($teamId: ID!) {
+  const viewerRaw = await safeViewer(apiKey);
+  // team(id:) takes String! (iter-2 P0 — ID! is rejected).
+  const q = `query($teamId: String!) {
     team(id: $teamId) {
       issues(first: 100, orderBy: updatedAt) {
         nodes {
@@ -235,33 +239,47 @@ async function fetchTeamState(teamKey, apiKey) {
     }
   }`;
   const d = await linear(q, { teamId: team.id }, apiKey);
+  const nodes = (d.team && d.team.issues && d.team.issues.nodes) || [];
+  // Which issues are the pinned Discoveries thread? (label swb-meta.) Comments
+  // sitting on those are discovery:true; consumers surface them as `disc` lines.
+  const discoveryKeys = new Set(
+    nodes
+      .filter((n) => (n.labels && n.labels.nodes ? n.labels.nodes : []).some((l) => l.name === 'swb-meta'))
+      .map((n) => n.identifier)
+  );
   const issues = [];
   const comments = [];
-  const nodes = (d.team && d.team.issues && d.team.issues.nodes) || [];
   for (const n of nodes) {
     issues.push({
       id: n.id,
       key: n.identifier,
       title: n.title,
+      state: n.state ? swbStateName(n.state.name) : null, // swb state names (mapped at fetch time)
+      assignee: n.assignee ? n.assignee.name : null,
       createdAt: n.createdAt,
       updatedAt: n.updatedAt,
-      state: n.state ? n.state.name : null,
-      assignee: n.assignee ? n.assignee.name : null,
-      labels: (n.labels && n.labels.nodes ? n.labels.nodes : []).map((l) => l.name),
     });
     for (const c of (n.comments && n.comments.nodes) || []) {
       comments.push({
-        id: c.id,
-        key: n.identifier,
-        body: c.body,
+        issueKey: n.identifier,
         author: c.user ? c.user.name : 'unknown',
+        body: c.body,
         createdAt: c.createdAt,
+        discovery: discoveryKeys.has(n.identifier),
       });
     }
   }
+  // states: swb name → { linearName, id }. Only the five mapped states.
   const states = {};
-  for (const s of (team.states && team.states.nodes) || []) states[s.name] = s.id;
-  return { fetchedAt: new Date().toISOString(), teamKey, issues, comments, states };
+  const byLinearName = new Map((team.states && team.states.nodes ? team.states.nodes : []).map((s) => [s.name, s]));
+  for (const [swbName, linearName] of Object.entries(STATE_MAP)) {
+    const s = byLinearName.get(linearName);
+    states[swbName] = { linearName, id: s ? s.id : null };
+  }
+  const viewer = viewerRaw
+    ? { name: viewerRaw.name || null, displayName: viewerRaw.displayName || viewerRaw.name || null }
+    : null;
+  return { fetchedAt: new Date().toISOString(), teamKey, viewer, states, issues, comments };
 }
 
 // Refetch into cache; on failure return the stale cache (serve-stale, loud age stamp handled by caller).
@@ -294,17 +312,30 @@ function fmtTime(d) {
 }
 
 // Build ordered delta items newer than sinceTs. viewerName drives @you ordering.
+// viewerName may be a string OR the v2 cache viewer object {name, displayName}.
 function buildDeltaItems(cache, sinceTs, viewerName) {
   const since = sinceTs ? Date.parse(sinceTs) : 0;
+  const you = viewerNameOf(viewerName);
+  const youLc = you.toLowerCase();
+  // Word-boundaried @mention only — never a bare substring — so short names
+  // (sam→"same", ana→"banana") don't falsely promote a comment to the @you slot.
+  const mentionRe = you ? new RegExp('@' + escapeRe(firstWord(you)) + '\\b', 'i') : null;
   const items = [];
   for (const c of cache.comments || []) {
     const t = Date.parse(c.createdAt);
     if (Number.isNaN(t) || t <= since) continue;
-    const mentioned = viewerName && new RegExp('@' + escapeRe(firstWord(viewerName)), 'i').test(c.body || '');
+    // Suppress the viewer's own comments — you don't need to be told what you said.
+    if (youLc && String(c.author || '').toLowerCase() === youLc) continue;
+    const isDiscovery = c.discovery === true;
+    const mentioned = mentionRe ? mentionRe.test(c.body || '') : false;
+    let kind;
+    if (mentioned) kind = 'you';
+    else if (isDiscovery) kind = 'comment'; // rendered as a `disc` line
+    else continue; // ordinary non-mention, non-discovery comment → not surfaced
     items.push({
-      kind: mentioned ? 'you' : 'comment',
+      kind,
       ts: t,
-      key: c.key,
+      key: c.issueKey,
       author: c.author,
       text: c.body,
     });
@@ -315,7 +346,9 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
     if (!Number.isNaN(created) && created > since) {
       items.push({ kind: 'new', ts: created, key: iss.key, title: iss.title, state: iss.state });
     } else if (!Number.isNaN(updated) && updated > since) {
-      // A state change / claim shows up as an update.
+      // A state change / claim shows up as an update. Suppress your OWN claims —
+      // an issue now assigned to you is not news you need pushed back at you.
+      if (youLc && String(iss.assignee || '').toLowerCase() === youLc) continue;
       items.push({ kind: 'state', ts: updated, key: iss.key, title: iss.title, state: iss.state, assignee: iss.assignee });
     }
   }
@@ -330,12 +363,27 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
 }
 function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function firstWord(s) { return String(s || '').trim().split(/\s+/)[0]; }
+// Accept either a plain name string or the v2 cache viewer object {name, displayName}.
+function viewerNameOf(v) {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  return String(v.displayName || v.name || '');
+}
 
 function swbStateName(linearName) {
   for (const [swbName, linName] of Object.entries(STATE_MAP)) {
     if (linName === linearName) return swbName;
   }
   return linearName || '?';
+}
+
+// Parse an issue key like "HAC-123" into { teamKey: 'HAC', number: 123 }.
+// Linear's IssueFilter has no `identifier` field, so every by-key lookup must
+// filter on number + team.key instead (CONTRACTS iter-2 P0).
+function parseIssueKey(key) {
+  const m = /^([A-Za-z][A-Za-z0-9]*)-(\d+)$/.exec(String(key || '').trim());
+  if (!m) throw new Error(`Malformed issue key "${key}" (expected e.g. HAC-123)`);
+  return { teamKey: m[1].toUpperCase(), number: Number(m[2]) };
 }
 
 // Render the digest exactly per CONTRACTS.md. Returns '' on empty delta (print nothing).
@@ -402,12 +450,15 @@ async function postComment(issueId, body, viewerName, apiKey) {
   return d.commentCreate.comment;
 }
 
-// Issue lookup helpers (live, not cache — mutations must read truth)
+// Issue lookup helpers (live, not cache — mutations must read truth).
+// IssueFilter has no `identifier` field, so we parse KEY → team.key + number
+// and filter on those instead (iter-2 P0 — the old identifier filter is rejected).
 async function findIssueByKey(teamKey, key, apiKey) {
-  const q = `query($key: String!) {
-    issues(filter: { identifier: { eq: $key } }, first: 1) {
+  const { teamKey: keyTeam, number } = parseIssueKey(key);
+  const q = `query($number: Float!, $teamKey: String!) {
+    issues(filter: { number: { eq: $number }, team: { key: { eq: $teamKey } } }, first: 1) {
       nodes {
-        id identifier title description
+        id identifier title description number
         team { id key }
         state { id name type }
         assignee { id name }
@@ -415,7 +466,7 @@ async function findIssueByKey(teamKey, key, apiKey) {
       }
     }
   }`;
-  const d = await linear(q, { key }, apiKey);
+  const d = await linear(q, { number, teamKey: keyTeam }, apiKey);
   const node = d.issues && d.issues.nodes && d.issues.nodes[0];
   if (!node) throw new Error(`Issue ${key} not found`);
   if (node.team && node.team.key !== teamKey) {
@@ -439,18 +490,23 @@ async function setAssigneeAndState(issueId, assigneeId, stateId, apiKey) {
   return d.issueUpdate.issue;
 }
 
-// Fail-open recipe
+// Fail-open recipe. `steps` are numbered, human-doable actions that accomplish
+// the same thing in the Linear UI / terminal; `cause` is the underlying error
+// (a raw GraphQL / network message) surfaced as a final `cause:` line — never a
+// bare error dump instead of steps.
 class RecipeError extends Error {
-  constructor(message, steps) {
+  constructor(message, steps, cause) {
     super(message);
     this.name = 'RecipeError';
     this.recipe = steps || [];
+    this.cause = cause || null;
   }
 }
-function printRecipe(message, steps, out) {
+function printRecipe(message, steps, out, cause) {
   const w = out || process.stdout;
   w.write(`\nMANUAL RECIPE: ${message}\n`);
   steps.forEach((s, i) => w.write(`  ${i + 1}. ${s}\n`));
+  if (cause) w.write(`  cause: ${String(cause)}\n`);
   w.write('\n');
 }
 
@@ -461,13 +517,18 @@ async function verbSync(ctx) {
   const { teamKey, apiKey, sessionId, hook, out, now } = ctx;
   const viewer = await safeViewer(apiKey); // sync tolerates viewer failure (name only affects @you)
   const { cache, error } = await ensureCache(teamKey, apiKey, now.getTime());
+  if (error) {
+    // We fell back to stale cache because the refetch failed. Record the failure
+    // explicitly (ok:false + fetchError) so events.jsonl shows the degraded read.
+    logEvent({ cmd: 'sync', args: ['stale'], sessionId, ok: false, ms: 0, fetchError: error.message });
+  }
   if (!cache) {
     // no cache at all and refetch failed → nothing to show; in hook mode stay silent
     if (!hook) out.write('switchboard: no data (Linear unreachable, no cache)\n');
     return { code: 0 };
   }
   const cursor = readCursor(sessionId);
-  const items = buildDeltaItems(cache, cursor.lastSeenTs, viewer && viewer.name);
+  const items = buildDeltaItems(cache, cursor.lastSeenTs, viewerNameOf(viewer) || (cache && cache.viewer));
   const digest = renderDigest(cache, items, now, readOwnership());
   // advance cursor to newest item ts (or now) so we don't repeat
   const newest = items.length ? new Date(Math.max(...items.map((i) => i.ts))).toISOString() : cursor.lastSeenTs;
@@ -495,11 +556,10 @@ async function verbClaim(ctx) {
   const files = (typeof args.files === 'string' ? args.files : '').split(',').map((s) => s.trim()).filter(Boolean);
   if (!key) throw new RecipeError('claim needs an issue key', ['Usage: swb claim <KEY> --files <g1,g2>']);
   const recipe = [
-    `Open ${key} in Linear`,
-    'Set yourself as Assignee',
-    'Move it to "In Progress"',
+    `Open Linear and assign yourself to ${key}`,
+    `Move ${key} to "In Progress"`,
     `git worktree add ../switchboard-wt/${key} -b ${key}`,
-    `Post a comment: "claiming ${key}; files: ${files.join(', ') || '(none)'}"`,
+    `Post a comment on ${key}: "claiming ${key}; files: ${files.join(', ') || '(none)'}"`,
   ];
   try {
     const viewer = await getViewer(apiKey);
@@ -539,7 +599,7 @@ async function verbClaim(ctx) {
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
-    throw new RecipeError(err.message, recipe);
+    throw new RecipeError(`could not claim ${key} — claim it by hand:`, recipe, err.message);
   }
 }
 
@@ -584,7 +644,7 @@ async function verbDone(ctx) {
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
-    throw new RecipeError(err.message, recipe);
+    throw new RecipeError(`could not mark ${key} done — finish it by hand:`, recipe, err.message);
   }
 }
 
@@ -609,7 +669,7 @@ async function verbAsk(ctx) {
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
-    throw new RecipeError(err.message, recipe);
+    throw new RecipeError(`could not post the question on ${key} — ask by hand:`, recipe, err.message);
   }
 }
 
@@ -619,7 +679,8 @@ async function verbDiscover(ctx) {
   if (!text) throw new RecipeError('discover needs "<text>"', ['Usage: swb discover "finding"']);
   const recipe = [
     `Append the finding to ${path.join(cwd, 'DISCOVERIES.md')}`,
-    "Comment the finding on the pinned 'Discoveries' issue (label swb-meta)",
+    "Open (or create) the pinned 'Discoveries' issue in Linear and add the label swb-meta",
+    `Post a comment on it: "${trunc(text, 80)}"`,
   ];
   try {
     const viewer = await getViewer(apiKey);
@@ -637,12 +698,13 @@ async function verbDiscover(ctx) {
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
-    throw new RecipeError(err.message, recipe);
+    throw new RecipeError('could not record the discovery in Linear — do it by hand:', recipe, err.message);
   }
 }
 
 async function ensureLabel(teamId, name, apiKey) {
-  const q = `query($teamId: ID!) { team(id: $teamId) { labels(first: 100) { nodes { id name } } } }`;
+  // team(id:) takes String! (iter-2 P0 — ID! is rejected by Linear).
+  const q = `query($teamId: String!) { team(id: $teamId) { labels(first: 100) { nodes { id name } } } }`;
   const d = await linear(q, { teamId }, apiKey);
   const existing = (d.team.labels.nodes || []).find((l) => l.name === name);
   if (existing) return existing.id;
@@ -691,7 +753,7 @@ async function verbNew(ctx) {
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
-    throw new RecipeError(err.message, recipe);
+    throw new RecipeError(`could not create the issue — create it by hand:`, recipe, err.message);
   }
 }
 
@@ -699,15 +761,17 @@ async function verbShow(ctx) {
   const { teamKey, apiKey, args, out } = ctx;
   const key = args._[1];
   if (!key) throw new RecipeError('show needs an issue key', ['Usage: swb show <KEY>']);
-  const q = `query($key: String!) {
-    issues(filter: { identifier: { eq: $key } }, first: 1) {
+  // IssueFilter has no `identifier` field — filter on number + team.key (iter-2 P0).
+  const { teamKey: keyTeam, number } = parseIssueKey(key);
+  const q = `query($number: Float!, $teamKey: String!) {
+    issues(filter: { number: { eq: $number }, team: { key: { eq: $teamKey } } }, first: 1) {
       nodes {
         identifier title description team { key }
         state { name } assignee { name }
         labels { nodes { name } }
         comments(first: 30) { nodes { body createdAt user { name } } }
       } } }`;
-  const d = await linear(q, { key }, apiKey);
+  const d = await linear(q, { number, teamKey: keyTeam }, apiKey);
   const iss = d.issues && d.issues.nodes && d.issues.nodes[0];
   if (!iss) throw new RecipeError(`Issue ${key} not found`, [`Open ${key} in Linear directly`]);
   out.write(`${iss.identifier}  ${iss.title}\n`);
@@ -748,7 +812,7 @@ async function verbRelease(ctx) {
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
-    throw new RecipeError(err.message, recipe);
+    throw new RecipeError(`could not release ${key} — release it by hand:`, recipe, err.message);
   }
 }
 
@@ -912,12 +976,12 @@ async function run(argv, options) {
     return code;
   } catch (err) {
     if (err instanceof RecipeError) {
-      printRecipe(err.message, err.recipe, out);
-      logEvent({ cmd, args: args._, sessionId, ok: false, ms: Date.now() - t0, error: 'recipe:' + err.message });
+      printRecipe(err.message, err.recipe, out, err.cause);
+      logEvent({ cmd, args: args._, sessionId, ok: false, ms: Date.now() - t0, error: 'recipe:' + err.message, cause: err.cause || undefined });
       return 2;
     }
-    // Any other error is still fail-open: generic recipe.
-    printRecipe(err.message || String(err), ['Perform this action manually in the Linear UI.'], out);
+    // Any other error is still fail-open: generic recipe with the raw error as cause.
+    printRecipe('this action failed — do it manually in the Linear UI:', ['Open Linear and perform the action by hand.'], out, err.message || String(err));
     logEvent({ cmd, args: args._, sessionId, ok: false, ms: Date.now() - t0, error: String(err && err.message || err) });
     return 2;
   }
@@ -951,7 +1015,8 @@ function hookDigest(opts) {
   try {
     const cache = readCache();
     if (!cache) return { text: '', hasItems: false, wroteCursor: false };
-    const viewerName = o.viewerName || (cache && cache.viewer) || process.env.SWB_VIEWER || '';
+    // cache.viewer is the v2 object {name, displayName}; normalize to a name string.
+    const viewerName = o.viewerName || viewerNameOf(cache && cache.viewer) || process.env.SWB_VIEWER || '';
     const cursor = readCursor(sessionId);
     const items = buildDeltaItems(cache, cursor.lastSeenTs, viewerName);
     const text = renderDigest(cache, items, now, readOwnership());
@@ -1005,7 +1070,7 @@ module.exports = {
   // linear
   linear, getViewer, getTeamByKey, findIssueByKey, postComment, signComment,
   // digest
-  buildDeltaItems, renderDigest, swbStateName, trunc, fmtTime, claimLine,
+  buildDeltaItems, renderDigest, swbStateName, trunc, fmtTime, claimLine, viewerNameOf, parseIssueKey,
   // recipe
   RecipeError, printRecipe,
   // hook seam
