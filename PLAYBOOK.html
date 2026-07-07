@@ -1,0 +1,621 @@
+<title>Switchboard Playbook</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    /* Signal-panel palette — operator console warmth, amber patch-cable accent */
+    --paper: #F5F1E8;
+    --panel: #FBF8F1;
+    --panel-sunk: #EDE7DA;
+    --ink: #2A251C;
+    --ink-soft: #5E564733;
+    --muted: #6E6552;
+    --line: #DAD2C1;
+    --line-strong: #C6BBA4;
+    --amber: #C77F16;        /* patch-cable / "you have a call" lamp */
+    --amber-bg: #F6E6C8;
+    --brass: #9A6E1E;        /* jack brass */
+    --connect: #2F7D5B;      /* line up / green */
+    --connect-bg: #DCEBE1;
+    --hold: #B4472A;         /* hold / refuse / red */
+    --hold-bg: #F4DED4;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", "JetBrains Mono", "Menlo", "Cascadia Code", "Consolas", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --display: "Georgia", "Times New Roman", serif;
+    --maxw: 1080px;
+    --r: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #16130E;
+      --panel: #1F1B14;
+      --panel-sunk: #14110C;
+      --ink: #ECE4D2;
+      --ink-soft: #ECE4D222;
+      --muted: #9C927C;
+      --line: #322C21;
+      --line-strong: #453D2D;
+      --amber: #E8A13A;
+      --amber-bg: #3A2E14;
+      --brass: #C79B4A;
+      --connect: #6DBF95;
+      --connect-bg: #163025;
+      --hold: #E0785A;
+      --hold-bg: #37201A;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #F5F1E8; --panel: #FBF8F1; --panel-sunk: #EDE7DA;
+    --ink: #2A251C; --muted: #6E6552; --line: #DAD2C1; --line-strong: #C6BBA4;
+    --amber: #C77F16; --amber-bg: #F6E6C8; --brass: #9A6E1E;
+    --connect: #2F7D5B; --connect-bg: #DCEBE1; --hold: #B4472A; --hold-bg: #F4DED4;
+    --ink-soft: #5E564733;
+  }
+  :root[data-theme="dark"] {
+    --paper: #16130E; --panel: #1F1B14; --panel-sunk: #14110C;
+    --ink: #ECE4D2; --muted: #9C927C; --line: #322C21; --line-strong: #453D2D;
+    --amber: #E8A13A; --amber-bg: #3A2E14; --brass: #C79B4A;
+    --connect: #6DBF95; --connect-bg: #163025; --hold: #E0785A; --hold-bg: #37201A;
+    --ink-soft: #ECE4D222;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: 0.05px;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px 96px; }
+
+  a { color: var(--brass); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--amber); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 3px; }
+
+  /* ── Masthead ─────────────────────────────────────────────── */
+  header.mast {
+    padding: 54px 0 30px;
+    border-bottom: 1px solid var(--line-strong);
+    margin-bottom: 40px;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+  }
+  .kicker .lamp {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent);
+  }
+  h1.title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.6rem, 6vw, 4rem);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0 0 22px;
+  }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .mast-meta {
+    display: flex; flex-wrap: wrap; gap: 8px 10px;
+    font-family: var(--mono); font-size: 12.5px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 100px;
+    border: 1px solid var(--line-strong);
+    background: var(--panel);
+    color: var(--muted);
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+
+  /* ── Section scaffolding ──────────────────────────────────── */
+  section { margin: 0 0 46px; scroll-margin-top: 20px; }
+  .sec-head {
+    display: flex; align-items: baseline; gap: 14px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px; margin-bottom: 22px;
+  }
+  .sec-no {
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.1em; color: var(--amber);
+    border: 1px solid var(--amber); border-radius: 4px;
+    padding: 2px 7px; flex: none;
+  }
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(1.5rem, 3.4vw, 2rem);
+    font-weight: 700; letter-spacing: -0.01em;
+    margin: 0; text-wrap: balance;
+  }
+  .sec-sub { color: var(--muted); font-size: 0.95rem; margin: 0 0 20px; max-width: 66ch; }
+  h3 {
+    font-size: 1.12rem; font-weight: 700; margin: 26px 0 10px;
+    letter-spacing: -0.005em;
+  }
+  p { max-width: 68ch; }
+  strong { font-weight: 600; }
+
+  /* ── The 60-second panel ──────────────────────────────────── */
+  .sixty {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin-bottom: 8px;
+  }
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 18px 18px 20px;
+    position: relative;
+  }
+  .step .n {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--amber); font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .step h4 { margin: 0 0 6px; font-size: 1.02rem; font-weight: 700; }
+  .step p { margin: 0; font-size: 0.9rem; color: var(--muted); max-width: none; }
+  .step code { font-size: 0.82em; }
+
+  /* ── Terminal frame (the digest) ──────────────────────────── */
+  .term {
+    background: var(--panel-sunk);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r);
+    overflow: hidden;
+    margin: 8px 0 6px;
+  }
+  .term .bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .term .bar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+  .term .bar .ttl {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    color: var(--muted); margin-left: 6px;
+  }
+  .term pre {
+    margin: 0; padding: 16px 15px; overflow-x: auto;
+    font-family: var(--mono); font-size: 13px; line-height: 1.65;
+    color: var(--ink);
+  }
+  .term pre .dim { color: var(--muted); }
+  .term pre .amb { color: var(--amber); font-weight: 700; }
+  .term pre .grn { color: var(--connect); }
+  .cap { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--ink-soft);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  pre code { background: none; padding: 0; }
+
+  /* ── MUST / DEFAULT signal board ──────────────────────────── */
+  .board { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .board .col {
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .board .col-head {
+    padding: 12px 16px; font-family: var(--mono);
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 700; display: flex; align-items: center; gap: 9px;
+    border-bottom: 1px solid var(--line);
+  }
+  .board .must .col-head { color: var(--hold); background: var(--hold-bg); }
+  .board .default .col-head { color: var(--connect); background: var(--connect-bg); }
+  .board .col-head .tag {
+    margin-left: auto; font-size: 10px; opacity: 0.85; letter-spacing: 0.08em;
+  }
+  .rule-list { list-style: none; margin: 0; padding: 6px 0; }
+  .rule-list li {
+    padding: 11px 16px; border-top: 1px solid var(--line);
+    font-size: 0.92rem; line-height: 1.5;
+  }
+  .rule-list li:first-child { border-top: none; }
+  .rule-list li b { display: block; margin-bottom: 1px; }
+  .rule-list li .why { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Role cards ───────────────────────────────────────────── */
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .role {
+    border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--panel); padding: 18px 18px 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .role .rh { display: flex; align-items: center; gap: 10px; }
+  .role .badge {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; padding: 3px 9px; border-radius: 100px;
+    background: var(--amber-bg); color: var(--amber);
+    border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  }
+  .role h4 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+  .role p { margin: 0; font-size: 0.9rem; color: var(--muted); max-width: none; }
+  .role .lede-line { color: var(--ink); font-size: 0.95rem; font-weight: 600; }
+  .role code { font-size: 0.8em; }
+
+  /* ── Q&A loop steps ───────────────────────────────────────── */
+  .loop { list-style: none; margin: 0; padding: 0; counter-reset: q; }
+  .loop li {
+    display: grid; grid-template-columns: 30px 1fr; gap: 14px;
+    padding: 13px 0; border-top: 1px solid var(--line);
+    align-items: start;
+  }
+  .loop li:first-child { border-top: none; }
+  .loop li::before {
+    counter-increment: q; content: counter(q);
+    font-family: var(--mono); font-weight: 700; font-size: 13px;
+    color: var(--amber);
+    border: 1px solid var(--amber); border-radius: 50%;
+    width: 26px; height: 26px; display: grid; place-items: center;
+    margin-top: 1px;
+  }
+  .loop li b { display: block; }
+  .loop li p { margin: 2px 0 0; font-size: 0.9rem; color: var(--muted); max-width: none; }
+  .loop li code { font-size: 0.8em; }
+
+  /* ── Generic callout ──────────────────────────────────────── */
+  .callout {
+    border-left: 3px solid var(--amber);
+    background: var(--panel);
+    border-radius: 0 var(--r) var(--r) 0;
+    padding: 14px 18px; margin: 18px 0;
+  }
+  .callout p { margin: 0; font-size: 0.94rem; }
+  .callout p + p { margin-top: 8px; }
+  .callout.warn { border-left-color: var(--hold); }
+  .callout .lbl {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--amber); font-weight: 700;
+    display: block; margin-bottom: 5px;
+  }
+  .callout.warn .lbl { color: var(--hold); }
+
+  ul.tight { padding-left: 20px; }
+  ul.tight li { margin: 7px 0; max-width: 68ch; }
+  ul.tight li::marker { color: var(--amber); }
+
+  /* ── Walkthrough script ───────────────────────────────────── */
+  .script { display: grid; gap: 10px; }
+  .script .beat {
+    display: grid; grid-template-columns: 76px 1fr; gap: 16px;
+    border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--panel); padding: 14px 16px; align-items: start;
+  }
+  .script .beat .clock {
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    color: var(--amber); letter-spacing: 0.02em;
+    border-right: 1px solid var(--line); padding-right: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .script .beat .body b { display: block; margin-bottom: 3px; }
+  .script .beat .body p { margin: 0; font-size: 0.9rem; color: var(--muted); max-width: none; }
+  .exit {
+    margin-top: 16px; border: 1px dashed var(--connect);
+    border-radius: var(--r); background: var(--connect-bg);
+    padding: 16px 18px;
+  }
+  .exit .lbl {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--connect); font-weight: 700;
+    display: block; margin-bottom: 8px;
+  }
+  .exit ul { margin: 0; padding-left: 20px; }
+  .exit li { margin: 6px 0; font-size: 0.92rem; }
+  .exit li::marker { color: var(--connect); }
+
+  /* ── Troubleshooting table ────────────────────────────────── */
+  .tblwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; min-width: 560px; }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); font-weight: 700;
+    background: var(--panel-sunk);
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 0.85em; white-space: nowrap; }
+
+  .verbtable td:first-child code { color: var(--amber); background: var(--amber-bg); }
+
+  /* ── Divergence note ──────────────────────────────────────── */
+  .note {
+    font-size: 0.82rem; color: var(--muted);
+    border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px;
+  }
+  .note b { color: var(--ink); }
+
+  footer.doc {
+    border-top: 1px solid var(--line-strong);
+    margin-top: 60px; padding-top: 22px;
+    font-size: 0.85rem; color: var(--muted);
+    font-family: var(--mono); letter-spacing: 0.02em;
+  }
+
+  @media (max-width: 780px) {
+    .sixty { grid-template-columns: 1fr; }
+    .board, .roles { grid-template-columns: 1fr; }
+    .script .beat { grid-template-columns: 1fr; }
+    .script .beat .clock { border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 8px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .kicker .lamp { animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="kicker"><span class="lamp"></span> Switchboard · Participant Playbook · v1</div>
+    <h1 class="title">The operator's manual for eight parallel Claudes.</h1>
+    <p class="lede">Sixteen people, sixteen terminals, two teams, one Linear board. Switchboard is the patch panel between the islands: <b>you speak English, your agent speaks <code>swb</code>, and a digest keeps everyone current without anyone opening Linear.</b> Read your role. Everything here is a floor, not rails.</p>
+    <div class="mast-meta">
+      <span class="chip"><b>Ship</b> July 10</span>
+      <span class="chip"><b>Freeze</b> July 11</span>
+      <span class="chip"><b>Plan</b> July 13</span>
+      <span class="chip"><b>Build</b> July 14</span>
+      <span class="chip">CLI <b>swb</b> v1.0.0</span>
+      <span class="chip">Board <b>HAC / per-team</b></span>
+    </div>
+  </header>
+
+  <!-- ── 60 SECONDS ─────────────────────────────────────────── -->
+  <section id="how">
+    <div class="sec-head"><span class="sec-no">01</span><h2>How it works, in 60 seconds</h2></div>
+    <p class="sec-sub">Three moving parts. You never touch the API, you rarely open Linear, and you never type an <code>swb</code> command yourself — your agent does.</p>
+    <div class="sixty">
+      <div class="step">
+        <div class="n">You</div>
+        <h4>Speak English</h4>
+        <p>Say <em>"grab the player-UI ticket and get going."</em> Your Claude runs <code>swb claim</code> as an ordinary Bash call — you see it in the normal permission flow. The human speaks English; the agent speaks swb.</p>
+      </div>
+      <div class="step">
+        <div class="n">Agent</div>
+        <h4>Runs swb</h4>
+        <p>Every write to the board goes through an <code>swb</code> verb — never a raw API call. Claim, ask, discover, done. Each verb is signed with your name and cannot be half-followed.</p>
+      </div>
+      <div class="step">
+        <div class="n">Everyone</div>
+        <h4>Sees the digest</h4>
+        <p>A hook injects a short "what changed since your last look" digest on every prompt. Claims, questions, discoveries, state moves — they arrive in your agent's context the instant you type anything.</p>
+      </div>
+    </div>
+    <p style="margin-top:20px">That is the whole loop: <strong>sync → claim → work → done</strong>, with the digest running quietly underneath. Linear is shared memory; the terminal is the interface; humans are the routing layer.</p>
+  </section>
+
+  <!-- ── MUSTs vs DEFAULTs ──────────────────────────────────── -->
+  <section id="floor">
+    <div class="sec-head"><span class="sec-no">02</span><h2>The floor: MUSTs vs DEFAULTs</h2></div>
+    <p class="sec-sub">The left column is protocol — wired into the tool, true for both teams, not up for debate on planning day. The right column is <em>yours</em> to set. Changing a MUST breaks coordination; changing a DEFAULT is expected and earns knowledge-transfer points.</p>
+    <div class="board">
+      <div class="col must">
+        <div class="col-head">MUSTs <span class="tag">locked · in the tool</span></div>
+        <ul class="rule-list">
+          <li><b>Claim before you edit.</b><span class="why">One <code>swb claim &lt;KEY&gt; --files &lt;globs&gt;</code> assigns you, moves the ticket to In Progress, cuts a worktree, and declares your files. No claim = no coordinated edit.</span></li>
+          <li><b>Triage gate.</b><span class="why"><code>swb new</code> always lands in <strong>Triage</strong>. Agents cannot create Ready work — only a human promotes Triage → Ready.</span></li>
+          <li><b>Done gate.</b><span class="why"><code>swb done</code> runs your test command first and <em>refuses</em> on non-zero, then requires <code>--pr &lt;url&gt;</code> before it moves the ticket to In Review. No green tests + PR, no done.</span></li>
+          <li><b>Signed writes.</b><span class="why">Every comment ends <code>🤖 Claude — via &lt;you&gt; · swb v1.0.0</code>. The human is always the assignee and stays accountable.</span></li>
+          <li><b>One claim per dev (WIP = 1).</b><span class="why">Hold one ticket at a time. Finish or <code>swb release</code> before claiming the next — this keeps the review queue from becoming the bottleneck.</span></li>
+        </ul>
+      </div>
+      <div class="col default">
+        <div class="col-head">DEFAULTS <span class="tag">yours · set on planning day</span></div>
+        <ul class="rule-list">
+          <li><b>Labels &amp; routing.</b><span class="why">The <code>@design</code> / <code>@qa</code> / <code>@pm</code> label conventions that route digests and questions. Design your own roster and label map.</span></li>
+          <li><b>Merge cadence.</b><span class="why">Per-ticket by default (one worktree, one PR). Whether noon is a hard integration checkpoint or just a sync point is your call.</span></li>
+          <li><b>Review policy.</b><span class="why">Cross-review at <code>done</code>? Agent-assisted diff summaries? Who approves what — you decide.</span></li>
+          <li><b>Ticket granularity.</b><span class="why">Target is agent-sized: 30–90 min, one worktree, one PR. Slice finer or coarser as your feature demands.</span></li>
+          <li><b>Sub-agent patterns.</b><span class="why">Single agent or a 12-subagent ultracode fleet inside a claim — entirely your orchestration.</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout warn">
+      <span class="lbl">Why not just the Linear MCP?</span>
+      <p>MCP hands the model raw verbs and trusts it to follow a five-step claim ritual every time. Sixteen sessions doing five-step rituals ~50 times will each skip steps differently, silently. <code>swb</code> compiles the ritual into one command that cannot be half-followed. Keep the MCP for free-form reads ("what's still in Ready?"); <code>swb</code> owns the write path.</p>
+    </div>
+  </section>
+
+  <!-- ── ROLES ──────────────────────────────────────────────── -->
+  <section id="roles">
+    <div class="sec-head"><span class="sec-no">03</span><h2>Your relationship to the board</h2></div>
+    <p class="sec-sub">Agents never assign roles — organizers set rosters, teams decide who-does-what on planning day. What the system gives each role is a different <em>relationship to the board</em>. Find yours.</p>
+    <div class="roles">
+      <div class="role">
+        <div class="rh"><span class="badge">DEV</span><h4>Developer</h4></div>
+        <p class="lede-line">Claim and build. The default protocol as written.</p>
+        <p>Your loop is <code>sync → claim → work → done</code>. You hold one claim, work it in its worktree, and the ownership guard warns you if you wander into someone else's declared files. When you hit an unknown, you <code>swb ask</code> instead of guessing.</p>
+      </div>
+      <div class="role">
+        <div class="rh"><span class="badge">QA</span><h4>Quality</h4></div>
+        <p class="lede-line">Your tests <em>are</em> the done gate.</p>
+        <p>Write the TDD contracts — failing test files committed on planning day, referenced by tickets and named in each repo's <code>.swb.json</code> <code>testCommand</code>. <code>swb done</code> literally runs them. Your work is wired in mechanically, not as a handoff doc nobody opens.</p>
+      </div>
+      <div class="role">
+        <div class="rh"><span class="badge">DESIGN</span><h4>Designer</h4></div>
+        <p class="lede-line">Answer-node, not builder.</p>
+        <p>You rarely claim. You scale through the Q&amp;A loop: every "is this the intended behavior / spacing?" routes to <code>@design</code> and surfaces in your digest. Not terminal-native? swb comments are just Linear comments — answer from the web UI and the loop still works.</p>
+      </div>
+      <div class="role">
+        <div class="rh"><span class="badge">PM</span><h4>Product</h4></div>
+        <p class="lede-line">Owns the gates and the watchtower.</p>
+        <p>You promote Triage → Ready, cut scope, and are the one human whose digest is the <em>whole board</em>: aging unanswered asks, stuck tickets, burn-down. Your Claude works <strong>on</strong> the board, not <strong>in</strong> the repo. You run the hourly integration smoke.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DIGEST + Q&A ───────────────────────────────────────── -->
+  <section id="qa">
+    <div class="sec-head"><span class="sec-no">04</span><h2>The digest &amp; the Q&amp;A loop</h2></div>
+    <p class="sec-sub">Awareness is not coordination. The digest guarantees information <em>arrives</em> in your agent's context; the <code>act</code> line makes acknowledgment mandatory when an item touches your work.</p>
+
+    <div class="term" role="img" aria-label="Example switchboard digest showing a mention, a claim, a discovery, and the act directive line">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="ttl">injected on your next prompt</span></div>
+<pre><span class="dim">── switchboard · 14:22 · cache 12s · 3 new ──</span>
+<span class="amb">@you</span>   HAC-23 Sarah: "does quiz_progress need a composite
+       key per attempt?"                <span class="dim">→ swb show HAC-23</span>
+claim  HAC-31 player-ui → Marc          <span class="dim">files: src/player/**</span>
+disc   auth middleware strips X-Custom headers <span class="dim">(Dana)</span>
+<span class="amb">act</span>    if any item above touches your claimed ticket or
+       declared files, state the impact before continuing
+<span class="dim">──</span></pre>
+    </div>
+    <p class="cap">Mentions to you always sort first. Capped at 12 lines with <code>+N more</code>. An empty delta prints nothing. Detail lives behind <code>swb show &lt;KEY&gt;</code>.</p>
+
+    <h3>The Q&amp;A loop, step by step</h3>
+    <ul class="loop">
+      <li><div><b>Ask.</b><p>Marc's agent hits an unknown it would otherwise guess at and runs <code>swb ask HAC-23 @sarah "does quiz_progress need a composite key per attempt?"</code> — a signed comment lands on the schema ticket.</p></div></li>
+      <li><div><b>No blocking.</b><p>Marc's agent parks the dependent piece and works elsewhere. Nobody waits on a spinner.</p></div></li>
+      <li><div><b>Deliver.</b><p>Sarah's next digest surfaces the question in the priority <code>@you</code> slot. She never opens Linear.</p></div></li>
+      <li><div><b>Draft.</b><p>Sarah's Claude has the real schema in context, so it drafts a grounded answer — not a guess.</p></div></li>
+      <li><div><b>Gate.</b><p>Sarah approves or edits; <code>swb</code> posts the reply. No agent speaks for a human unattended — that's the v2 line.</p></div></li>
+      <li><div><b>Close.</b><p>Marc's next digest carries the answer; his agent un-parks and builds against the real schema. The whole exchange is on the ticket, permanently.</p></div></li>
+    </ul>
+    <div class="callout">
+      <span class="lbl">Honest framing</span>
+      <p>In a room, shouting across it beats this loop for speed — that's fine and expected. The loop's value on the 14th is different: the answer becomes <em>agent-legible</em> (a shouted answer never reaches the asking agent's context; this one lands in it), guesses get replaced by grounded truth, and the decision trail is exactly what judges probe in Q&amp;A.</p>
+    </div>
+  </section>
+
+  <!-- ── LIFECYCLE ──────────────────────────────────────────── -->
+  <section id="lifecycle">
+    <div class="sec-head"><span class="sec-no">05</span><h2>Ticket lifecycle</h2></div>
+    <p class="sec-sub">Entry and exit are human gates; everything between is agent-driven.</p>
+    <div class="tblwrap">
+      <table>
+        <tr><th>State</th><th>Enters via</th><th>Who</th></tr>
+        <tr><td><code>Triage</code></td><td><code>swb new</code></td><td>Anyone / any agent</td></tr>
+        <tr><td><code>Ready</code></td><td>Human promotes (needs template: acceptance criteria, files to touch, files NOT to touch, blocked-by)</td><td><b>Human gate</b> (PM)</td></tr>
+        <tr><td><code>In Progress</code></td><td><code>swb claim</code></td><td>Agent (dev sees it)</td></tr>
+        <tr><td><code>In Review</code></td><td><code>swb done</code> — refuses without green tests + <code>--pr</code></td><td>Agent, gated by tests</td></tr>
+        <tr><td><code>Done</code></td><td>Human merges the PR</td><td><b>Human gate</b></td></tr>
+      </table>
+    </div>
+    <ul class="tight">
+      <li>Agents <strong>cannot</strong> create Ready work or close their own tickets. That is the whole safety model.</li>
+      <li>Claiming a ticket whose blockers aren't Done should trigger a loud warning — dependency discipline is meant to be code, not vigilance.</li>
+      <li>Tickets are agent-sized: 30–90 minutes, one worktree, one PR. Merge per-ticket, not per-checkpoint.</li>
+    </ul>
+    <p class="note"><b>Note (tool vs spec):</b> in the shipped v1, <code>swb new</code> creates the Triage ticket but does <b>not</b> enforce the Ready template, and <code>swb claim</code> does <b>not</b> yet block on unfinished blockers. Both are human-gated on planning day: the PM applies the template when promoting and checks blockers before a claim. Treat these as protocol you keep, not something the CLI checks for you.</p>
+  </section>
+
+  <!-- ── FLEETS & GOAL LOOPS ────────────────────────────────── -->
+  <section id="fleets">
+    <div class="sec-head"><span class="sec-no">06</span><h2>Subagents, fleets &amp; goal loops</h2></div>
+    <div class="callout">
+      <span class="lbl">The core rule</span>
+      <p><strong>The claim is the unit of coordination, not the agent.</strong> One ticket = one claim = one worktree = one human assignee. Whatever happens inside — a single agent or a 12-subagent ultracode workflow — is the internal affair of that claim. The board sees the bubble, never its contents.</p>
+    </div>
+    <ul class="tight">
+      <li><strong>Subagents never claim tickets and never write to Linear.</strong> <code>swb</code> writes happen from the main session where you see them. Subagents may read (<code>swb sync</code> / <code>swb show</code>).</li>
+      <li><strong>The ownership guard fires on every Edit/Write — including subagents'.</strong> A fleet member wandering outside the ticket's declared files gets caught at the file boundary, which is exactly where fleets are most dangerous.</li>
+      <li><strong>Collisions inside one worktree are your problem.</strong> Coordination has two scales: <em>between</em> claims (Switchboard's job) and <em>within</em> a claim (your orchestration).</li>
+      <li><strong>Goal loops (/goal, /loop, long autonomous runs) keep working</strong> because the gates are structural, not attentional. Each loop iteration re-fires the hooks, so the digest and its <code>act</code> directive steer every cycle; writes still route through the same verbs. A looping agent still cannot create Ready tickets, cannot close without green tests + PR, and cannot merge its own PR.</li>
+      <li><strong>Two rules ride along with any loop:</strong> you stay answerable for your loop's claims ("it ran for hours" is a failing answer to a judge), and going auto-accept is declared to the team out loud, not drifted into.</li>
+      <li><strong>The protocol survives compaction.</strong> It lives in files and hooks, not conversation — anything you brief verbally into an agent dies at the first context compaction; anything in AGENTS.md and the digest does not.</li>
+    </ul>
+  </section>
+
+  <!-- ── AI CAPTAIN ─────────────────────────────────────────── -->
+  <section id="captain">
+    <div class="sec-head"><span class="sec-no">07</span><h2>AI-captain duties</h2></div>
+    <p class="sec-sub">Each team names an AI-captain — the person who owns the coordination layer so the rest of the team can build. Not a manager; a switchboard operator.</p>
+    <ul class="tight">
+      <li><strong>Own <code>swb doctor</code> green.</strong> Before build day, confirm every teammate's machine passes — including at least one Windows/PowerShell box. Chase red machines individually.</li>
+      <li><strong>Guard the write path.</strong> Team config grants <em>no</em> Linear MCP write tools. If a teammate is doing raw MCP writes, that's the leak — route them back through <code>swb</code>.</li>
+      <li><strong>Keep <code>swb</code> allowlisted for reads.</strong> Pre-allowlist <code>swb sync</code> / <code>swb show</code> so gated prompts (claim / ask / done) stay rare and meaningful — that keeps the human gates from silently vanishing under approval fatigue.</li>
+      <li><strong>Name the auto-accept decision.</strong> If the team goes auto-accept, it's a decision made out loud, logged, not drift by 2pm.</li>
+      <li><strong>Run the fail-open recipes.</strong> When a verb prints <code>MANUAL RECIPE:</code>, you're the one who knows it means "do these numbered steps by hand in Linear" — nobody is ever blocked on the tool.</li>
+      <li><strong>Watch the quota.</strong> One workspace per team, 250-issue free-tier cap. Deleting/archiving Done-and-merged test junk reclaims quota mid-day.</li>
+    </ul>
+  </section>
+
+  <!-- ── WALKTHROUGH SCRIPT ─────────────────────────────────── -->
+  <section id="walkthrough">
+    <div class="sec-head"><span class="sec-no">08</span><h2>Planning-day walkthrough (~15 min)</h2></div>
+    <p class="sec-sub">Slots into the 2:30–3:30 orchestration block. Run it live in one terminal on the projector. The goal is not to teach the tool — it's to end with every person holding a claimable ticket.</p>
+    <div class="script">
+      <div class="beat"><div class="clock">0:00</div><div class="body"><b>Show a green doctor.</b><p>Run <code>swb doctor</code> on the projector. Green = key valid, team resolves, all five states exist. This is the July-10 checklist item everyone already passed; now they see what it proves.</p></div></div>
+      <div class="beat"><div class="clock">2:00</div><div class="body"><b>Speak English, watch the agent run swb.</b><p>Type <em>"claim the login ticket and start"</em> into a real Claude session. Point at the <code>swb claim</code> Bash call in the permission flow. Nobody typed a command.</p></div></div>
+      <div class="beat"><div class="clock">4:00</div><div class="body"><b>Second terminal feels the digest.</b><p>On a second machine, submit any prompt. The claim from step 2 appears in its digest. That's the whole thesis in ten seconds: a claim on one island reaches another island's agent unprompted.</p></div></div>
+      <div class="beat"><div class="clock">6:00</div><div class="body"><b>Run the Q&amp;A loop once.</b><p><code>swb ask</code> from terminal A → it surfaces in terminal B's <code>@you</code> slot → B drafts, the human gates, <code>swb</code> posts → A's next digest carries the answer. Show the trail on the ticket.</p></div></div>
+      <div class="beat"><div class="clock">9:00</div><div class="body"><b>Trip the ownership guard.</b><p>Have terminal B try to edit a file terminal A claimed. Show the <code>⚠ owned by …</code> warning — and that it <em>warns, never blocks</em>.</p></div></div>
+      <div class="beat"><div class="clock">11:00</div><div class="body"><b>Show a refused done.</b><p>Run <code>swb done</code> on a ticket with failing tests, or with no <code>--pr</code>. Show the <code>MANUAL RECIPE:</code> output. The gate is physical, not a reminder.</p></div></div>
+      <div class="beat"><div class="clock">13:00</div><div class="body"><b>Hand the board to the teams.</b><p>Stop demoing. The remaining decisions are theirs. Read the list below aloud and set them loose.</p></div></div>
+    </div>
+    <div class="exit">
+      <span class="lbl">Decisions each team makes for itself — before you leave the room</span>
+      <ul>
+        <li><strong>Roster &amp; label map</strong> — who is dev / QA / design / PM, and the <code>@design</code> / <code>@qa</code> / <code>@pm</code> routing labels.</li>
+        <li><strong>Ticket conventions &amp; granularity</strong> — your Ready template, your 30–90-min slice size.</li>
+        <li><strong>File-ownership map</strong> — the glob patterns each area of the codebase claims, so <code>--files</code> declarations don't overlap by accident.</li>
+        <li><strong>Merge cadence &amp; review policy</strong> — per-ticket vs checkpoint; who reviews at <code>done</code>.</li>
+        <li><strong>AGENTS.md protocol section</strong> — commit the drop-in template (below) into your team repo so the protocol survives compaction.</li>
+        <li><strong>Exit criterion — the one that must be true before anyone leaves:</strong> every person walks out with <strong>≥1 claimable Ready ticket that does not depend on scaffolding</strong> (contracts, fixtures, test harness, seed data). If half the team is idle behind scaffolding at 8:15am on build day, this step failed. Front-load the scaffold-independent work.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── TROUBLESHOOTING ────────────────────────────────────── -->
+  <section id="trouble">
+    <div class="sec-head"><span class="sec-no">09</span><h2>Troubleshooting</h2></div>
+    <p class="sec-sub">Switchboard is designed to fail open — a broken tool never blocks you. Here's what to reach for.</p>
+
+    <h3>First move: <code>swb doctor</code></h3>
+    <p>It checks, in order: your <code>LINEAR_API_KEY</code> is present, your team resolves (from <code>.swb.json</code> or <code>SWB_TEAM_KEY</code>), the API is reachable, the team exists, and all five workflow states are present. If a state is missing, <code>swb doctor --fix</code> creates it.</p>
+
+    <div class="tblwrap">
+      <table>
+        <tr><th>Symptom</th><th>Fix</th></tr>
+        <tr><td><code>swb: command not found</code></td><td><code>~/.local/bin</code> isn't on <code>PATH</code> (see INSTALL.md), or just run <code>node /path/to/switchboard/swb.js</code>.</td></tr>
+        <tr><td>doctor says a workflow state is missing</td><td><code>swb doctor --fix</code> creates the missing Linear states.</td></tr>
+        <tr><td><code>LINEAR_API_KEY missing</code></td><td>Add <code>LINEAR_API_KEY=lin_api_…</code> to <code>~/.switchboard/env</code>, or re-run <code>node install.js --key …</code>.</td></tr>
+        <tr><td><code>no team resolved</code></td><td>Add a <code>.swb.json</code> with <code>"teamKey"</code> to your repo, or set <code>SWB_TEAM_KEY</code> in <code>~/.switchboard/env</code>.</td></tr>
+        <tr><td>Digest is stale / Linear slow</td><td>Expected fallback: the digest serves stale cache with a loud <code>cache Ns</code> age stamp rather than hanging your prompt. Fetch is time-boxed at 5s.</td></tr>
+      </table>
+    </div>
+
+    <h3>Fail-open recipes</h3>
+    <p>Any <code>swb</code> verb that hits an error prints <code>MANUAL RECIPE:</code> followed by numbered steps that accomplish the same thing by hand in the Linear UI / terminal, then exits with code <code>2</code>. You are never blocked on the tool. A claim that loses the verify-race backs off and exits <code>3</code> — re-run once the holder releases.</p>
+
+    <h3>If the hooks go quiet (no digest appearing)</h3>
+    <ul class="tight">
+      <li><strong>Run <code>swb sync</code> by hand.</strong> This is the whole point of the read plane surviving a dead hook — it prints the same digest. Codex users live in this mode permanently.</li>
+      <li><strong>Check <code>~/.switchboard/events.jsonl</code>.</strong> Every verb and every hook appends a line. If <code>hook:userpromptsubmit</code> lines stop, the hook isn't firing — confirm the merge in <code>~/.claude/settings.json</code> (the installer backs your original up to <code>settings.json.swb-bak</code>).</li>
+      <li><strong>Empty digest is normal.</strong> An empty delta prints <em>nothing</em> — silence usually means "nothing changed since your last look," not a failure. Force a change from another terminal to confirm.</li>
+      <li><strong>Worst case, verbs still work with zero hooks.</strong> The CLI is the core; hooks are the ambient layer on top. <code>claim</code> / <code>ask</code> / <code>done</code> / <code>sync</code> all work manually even if every hook is dead.</li>
+    </ul>
+  </section>
+
+  <footer class="doc">
+    Switchboard Participant Playbook · v1 · out July 9 with the hackathon rules · pairs with AGENTS-template.md and INSTALL.md · CLI swb v1.0.0 · verified live against team HAC.
+  </footer>
+
+</div>
+
+<script>
+  // No behavior needed; theme is token-driven. Kept minimal and reduced-motion aware.
+</script>

@@ -205,6 +205,34 @@ async function getViewer(apiKey) {
   return d.viewer;
 }
 
+// Fetch the ACTIVE members of a team: {id, name, displayName}. Used by `ask` to
+// canonicalize a human-typed @target into the member's @displayName handle.
+async function getTeamMembers(teamKey, apiKey) {
+  const q = `query($key: String!) {
+    teams(filter: { key: { eq: $key } }, first: 1) {
+      nodes { id key
+        members(first: 100) { nodes { id name displayName active } } } } }`;
+  const d = await linear(q, { key: teamKey }, apiKey);
+  const team = d.teams && d.teams.nodes && d.teams.nodes[0];
+  if (!team) throw new Error(`Team "${teamKey}" not found for this API key`);
+  return ((team.members && team.members.nodes) || []).filter((m) => m.active !== false);
+}
+
+// Resolve a human-typed @target ("@Turni", "@turni.saha", "Turni Saha") against a
+// team's members. Match case-insensitively on displayName, full name, or the
+// FIRST word of the name. Returns the matched member or null (no match).
+function matchMember(rawTarget, members) {
+  const needle = String(rawTarget || '').replace(/^@+/, '').trim().toLowerCase();
+  if (!needle) return null;
+  for (const m of members || []) {
+    const dn = String(m.displayName || '').trim().toLowerCase();
+    const full = String(m.name || '').trim().toLowerCase();
+    const first = firstWord(m.name || '').toLowerCase();
+    if (needle === dn || needle === full || (first && needle === first)) return m;
+  }
+  return null;
+}
+
 async function getTeamByKey(teamKey, apiKey) {
   const q = `query($key: String!) {
     teams(filter: { key: { eq: $key } }, first: 1) {
@@ -317,9 +345,10 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
   const since = sinceTs ? Date.parse(sinceTs) : 0;
   const you = viewerNameOf(viewerName);
   const youLc = you.toLowerCase();
-  // Word-boundaried @mention only — never a bare substring — so short names
-  // (sam→"same", ana→"banana") don't falsely promote a comment to the @you slot.
-  const mentionRe = you ? new RegExp('@' + escapeRe(firstWord(you)) + '\\b', 'i') : null;
+  // Broadened @you matcher: a comment counts as mine if it @-mentions ANY of my
+  // handle tokens — displayName, my first name, or my full name — each matched
+  // word-boundaried + case-insensitive so short names never substring-promote.
+  // This is the fix for callers who type @Turni while my displayName is turni.saha.
   const items = [];
   for (const c of cache.comments || []) {
     const t = Date.parse(c.createdAt);
@@ -327,7 +356,7 @@ function buildDeltaItems(cache, sinceTs, viewerName) {
     // Suppress the viewer's own comments — you don't need to be told what you said.
     if (youLc && String(c.author || '').toLowerCase() === youLc) continue;
     const isDiscovery = c.discovery === true;
-    const mentioned = mentionRe ? mentionRe.test(c.body || '') : false;
+    const mentioned = bodyMentionsViewer(c.body, viewerName);
     let kind;
     if (mentioned) kind = 'you';
     else if (isDiscovery) kind = 'comment'; // rendered as a `disc` line
@@ -368,6 +397,43 @@ function viewerNameOf(v) {
   if (!v) return '';
   if (typeof v === 'string') return v;
   return String(v.displayName || v.name || '');
+}
+
+// The set of @-handle tokens that count as "me" for @you matching. A caller can
+// type @<displayName>, @<FirstName>, or @<Full Name>; any of them must surface a
+// comment as @you. viewer may be a v2 object {name, displayName} OR a bare name
+// string (older callers / tests pass just the display token). Deduped, lowercased.
+function viewerHandleTokens(viewer) {
+  const tokens = [];
+  if (viewer && typeof viewer === 'object') {
+    if (viewer.displayName) tokens.push(String(viewer.displayName));
+    if (viewer.name) { tokens.push(firstWord(viewer.name)); tokens.push(String(viewer.name).trim()); }
+  } else if (viewer) {
+    const s = String(viewer);
+    tokens.push(s);
+    tokens.push(firstWord(s)); // a bare "Turni Saha" string still yields "Turni"
+  }
+  const seen = new Set();
+  const out = [];
+  for (const t of tokens) {
+    const v = String(t || '').trim();
+    if (!v) continue;
+    const lc = v.toLowerCase();
+    if (seen.has(lc)) continue;
+    seen.add(lc);
+    out.push(v);
+  }
+  return out;
+}
+// Build one case-insensitive, word-boundaried @mention regex per handle token.
+// Word-boundaried so short handles (sam→"same") never substring-promote a comment.
+function mentionRegexesFor(viewer) {
+  return viewerHandleTokens(viewer).map((tok) => new RegExp('@' + escapeRe(tok) + '\\b', 'i'));
+}
+// True iff the body @-mentions ANY of the viewer's handle tokens.
+function bodyMentionsViewer(body, viewer) {
+  const text = String(body || '');
+  return mentionRegexesFor(viewer).some((re) => re.test(text));
 }
 
 function swbStateName(linearName) {
@@ -663,9 +729,30 @@ async function verbAsk(ctx) {
   try {
     const viewer = await getViewer(apiKey);
     const issue = await findIssueByKey(teamKey, key, apiKey);
-    const body = `${mention} ${question}`;
+    // Canonicalize the @target against the team's members so the digest's @you
+    // matcher (built from displayName / first name / full name) always surfaces
+    // it. A caller may type @Turni while the member's displayName is turni.saha.
+    const members = await getTeamMembers(teamKey, apiKey);
+    const match = matchMember(mention, members);
+    let handle;
+    if (match) {
+      const canonical = `@${match.displayName}`;
+      const typed = String(mention || '').replace(/^@+/, '').trim();
+      // Keep the human-typed form after the canonical handle when they differ, so
+      // the reader still sees what was originally written: "@turni.saha (Turni)".
+      handle = typed && typed.toLowerCase() !== String(match.displayName).toLowerCase()
+        ? `${canonical} (${typed})`
+        : canonical;
+    } else {
+      // No member matched — keep the raw text but WARN with the valid handles so
+      // the caller can retry (@you would otherwise silently never fire).
+      handle = mention;
+      const valid = members.map((m) => `@${m.displayName}`).join(', ') || '(no members found)';
+      out.write(`⚠ "${mention}" matched no team member — posting the raw mention. Valid handles: ${valid}\n`);
+    }
+    const body = `${handle} ${question}`;
     await postComment(issue.id, body, viewer.name, apiKey);
-    out.write(`✔ asked on ${key}: ${mention} ${trunc(question, 80)}\n`);
+    out.write(`✔ asked on ${key}: ${handle} ${trunc(question, 80)}\n`);
     return { code: 0 };
   } catch (err) {
     if (err instanceof RecipeError) throw err;
@@ -1068,7 +1155,9 @@ module.exports = {
   readOwnership, writeOwnership, readCursor, writeCursor,
   logEvent,
   // linear
-  linear, getViewer, getTeamByKey, findIssueByKey, postComment, signComment,
+  linear, getViewer, getTeamByKey, getTeamMembers, findIssueByKey, postComment, signComment,
+  // mentions
+  matchMember, viewerHandleTokens, mentionRegexesFor, bodyMentionsViewer,
   // digest
   buildDeltaItems, renderDigest, swbStateName, trunc, fmtTime, claimLine, viewerNameOf, parseIssueKey,
   // recipe

@@ -400,6 +400,8 @@ test('ask: posts a mention comment (exit 0)', async () => {
     installFetch([
       H.viewer('Turni'),
       issueByKey({ id: 'i-23', identifier: 'HAC-23', title: 'schema', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: { id: 'u-s', name: 'sarah' }, labels: { nodes: [] } }),
+      // sarah IS a member whose displayName is exactly "sarah" → canonicalizes to @sarah
+      teamMembers([{ id: 'u-s', name: 'Sarah Kim', displayName: 'sarah', active: true }]),
       H.commentCreate((v) => bodies.push(v.body)),
     ]);
     const { code, out } = await runVerb(['ask', 'HAC-23', '@sarah', 'composite key per attempt?'], { home, cwd });
@@ -408,6 +410,133 @@ test('ask: posts a mention comment (exit 0)', async () => {
     assert.ok(bodies.some((b) => b.startsWith('@sarah composite key') && b.includes('swb v')), 'mention + signature');
   });
   rm(home); rm(cwd);
+});
+
+// ── ask-side normalization: resolve @target → canonical @displayName ──────────
+// The Q&A loop's @you promise fails when `ask` writes the literal typed mention
+// (@Turni) but the digest matcher only knows the displayName (turni.saha). `ask`
+// must canonicalize the target against the team's members before posting.
+
+// Handler for getTeamMembers: teams(filter ...) { members { name displayName } }.
+// Distinguished from H.teamByKey by the `members(first` selection.
+function teamMembers(members) {
+  return {
+    match: (q) => has(q, 'teams(filter') && has(q, 'members(first'),
+    reply: { teams: { nodes: [{ id: 'team-1', key: 'HAC', members: { nodes: members } }] } },
+  };
+}
+
+test('ask: canonicalizes @FirstName → @displayName, keeps typed form (exit 0)', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();
+  const bodies = [];
+  await withEnv(home, 'lin_test_key', async () => {
+    installFetch([
+      H.viewer('Turni'),
+      issueByKey({ id: 'i-23', identifier: 'HAC-23', title: 'schema', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: { id: 'u-t', name: 'Turni Saha' }, labels: { nodes: [] } }),
+      teamMembers([{ id: 'u-t', name: 'Turni Saha', displayName: 'turni.saha', active: true }]),
+      H.commentCreate((v) => bodies.push(v.body)),
+    ]);
+    // caller types the FIRST name; must be rewritten to the canonical handle
+    const { code, out } = await runVerb(['ask', 'HAC-23', '@Turni', 'composite key per attempt?'], { home, cwd });
+    assert.strictEqual(code, 0, out);
+    // canonical handle written, with the typed form kept after it
+    assert.ok(bodies.length === 1, 'one comment posted');
+    assert.ok(bodies[0].startsWith('@turni.saha (Turni) composite key'), 'canonical @displayName + typed form: ' + bodies[0]);
+    assert.match(out, /@turni\.saha \(Turni\)/);
+  });
+  rm(home); rm(cwd);
+});
+
+test('ask: exact displayName match writes bare canonical handle (no dup)', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();
+  const bodies = [];
+  await withEnv(home, 'lin_test_key', async () => {
+    installFetch([
+      H.viewer('Turni'),
+      issueByKey({ id: 'i-23', identifier: 'HAC-23', title: 'schema', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: null, labels: { nodes: [] } }),
+      teamMembers([{ id: 'u-t', name: 'Turni Saha', displayName: 'turni.saha', active: true }]),
+      H.commentCreate((v) => bodies.push(v.body)),
+    ]);
+    // caller already typed the displayName → no "(typed)" suffix
+    const { code, out } = await runVerb(['ask', 'HAC-23', '@turni.saha', 'q?'], { home, cwd });
+    assert.strictEqual(code, 0, out);
+    assert.ok(bodies[0].startsWith('@turni.saha q?'), 'bare canonical handle, no dup: ' + bodies[0]);
+    assert.ok(!/\(turni\.saha\)/.test(bodies[0]), 'no redundant typed suffix');
+  });
+  rm(home); rm(cwd);
+});
+
+test('ask: unknown @target keeps raw text but warns with valid handles', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();
+  const bodies = [];
+  await withEnv(home, 'lin_test_key', async () => {
+    installFetch([
+      H.viewer('Turni'),
+      issueByKey({ id: 'i-23', identifier: 'HAC-23', title: 'schema', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: null, labels: { nodes: [] } }),
+      teamMembers([{ id: 'u-t', name: 'Turni Saha', displayName: 'turni.saha', active: true }]),
+      H.commentCreate((v) => bodies.push(v.body)),
+    ]);
+    const { code, out } = await runVerb(['ask', 'HAC-23', '@nobody', 'q?'], { home, cwd });
+    assert.strictEqual(code, 0, out);
+    // raw mention preserved in the posted body
+    assert.ok(bodies[0].startsWith('@nobody q?'), 'raw mention kept: ' + bodies[0]);
+    // warning names the valid handle set
+    assert.match(out, /matched no team member/);
+    assert.match(out, /@turni\.saha/);
+  });
+  rm(home); rm(cwd);
+});
+
+// ── matcher-side broadening: @you fires on displayName / first name / full name ─
+test('matchMember: matches on displayName, first name, and full name (case-insensitive)', () => {
+  const members = [{ id: 'u-t', name: 'Turni Saha', displayName: 'turni.saha', active: true }];
+  assert.strictEqual(swb.matchMember('@turni.saha', members).id, 'u-t', 'displayName');
+  assert.strictEqual(swb.matchMember('@Turni', members).id, 'u-t', 'first name');
+  assert.strictEqual(swb.matchMember('TURNI SAHA', members).id, 'u-t', 'full name, case-insensitive, no @');
+  assert.strictEqual(swb.matchMember('@marc', members), null, 'no false match');
+});
+
+test('viewerHandleTokens: dedups displayName / first / full for object and string viewers', () => {
+  const obj = swb.viewerHandleTokens({ name: 'Turni Saha', displayName: 'turni.saha' });
+  assert.deepStrictEqual(obj, ['turni.saha', 'Turni', 'Turni Saha'], 'three distinct tokens: ' + JSON.stringify(obj));
+  // when displayName equals the first name, no duplicate token survives
+  const same = swb.viewerHandleTokens({ name: 'Marc Chen', displayName: 'marc' });
+  assert.deepStrictEqual(same.map((s) => s.toLowerCase()), ['marc', 'marc chen'], 'marc + full only: ' + JSON.stringify(same));
+  // bare string viewer still yields the string + its first word
+  assert.deepStrictEqual(swb.viewerHandleTokens('Turni Saha'), ['Turni Saha', 'Turni']);
+});
+
+test('bodyMentionsViewer: @FirstName matches an object viewer whose displayName differs', () => {
+  const viewer = { name: 'Turni Saha', displayName: 'turni.saha' };
+  // THE BUG: a comment typed with @Turni must still be @you even though the
+  // displayName is turni.saha.
+  assert.ok(swb.bodyMentionsViewer('@Turni can you review this?', viewer), '@FirstName is me');
+  assert.ok(swb.bodyMentionsViewer('ping @turni.saha here', viewer), '@displayName is me');
+  assert.ok(swb.bodyMentionsViewer('hey @Turni Saha ok', viewer), '@FullName is me');
+  assert.ok(!swb.bodyMentionsViewer('a comment for @marc', viewer), 'someone else is not me');
+  // word-boundary guard: @turnip must NOT match @Turni
+  assert.ok(!swb.bodyMentionsViewer('the @turnip soup', viewer), 'no substring promotion');
+});
+
+test('buildDeltaItems: @Turni comment surfaces as @you for a turni.saha viewer', () => {
+  const now = new Date('2026-07-06T14:22:00.000Z');
+  const cache = {
+    fetchedAt: now.toISOString(), teamKey: 'HAC',
+    viewer: { name: 'Turni Saha', displayName: 'turni.saha' },
+    issues: [], states: {},
+    comments: [
+      // authored by a DIFFERENT person, mentioning the viewer by first name
+      { issueKey: 'HAC-23', author: 'sarah', body: '@Turni what schema shape?', createdAt: '2026-07-06T14:18:00.000Z', discovery: false },
+    ],
+  };
+  const items = swb.buildDeltaItems(cache, null, cache.viewer);
+  assert.strictEqual(items.length, 1, 'the mention is surfaced');
+  assert.strictEqual(items[0].kind, 'you', 'and it is an @you item');
+  const digest = swb.renderDigest(cache, items, now, {});
+  assert.match(digest, /@you   HAC-23 sarah: "@Turni what schema shape\?"/);
 });
 
 test('new: always lands in Triage (Backlog stateId sent) (exit 0)', async () => {
@@ -550,6 +679,7 @@ test('fail-open: GraphQL error on a mutation prints MANUAL RECIPE + exit 2', asy
     installFetch([
       H.viewer('Turni'),
       issueByKey({ id: 'i-23', identifier: 'HAC-23', title: 't', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: null, labels: { nodes: [] } }),
+      teamMembers([{ id: 'u-s', name: 'Sarah Kim', displayName: 'sarah', active: true }]),
       // commentCreate fails at the API layer
       { match: (q) => has(q, 'commentCreate'), reply: { errors: [{ message: 'rate limited' }] } },
     ]);
@@ -778,6 +908,7 @@ test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → 
 }, async () => {
   const R = liveRunner();
   let createdKey = null;
+  let liveDigestOut = null; // captured @you digest, printed after the run as proof
   try {
     // ── sync: populates a non-empty, schema-valid v2 cache ────────────────────
     const s = await R.run(['sync', '--session', 'live1']);
@@ -838,6 +969,32 @@ test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → 
     assert.ok(!afterRelease.assignee, 'release cleared the assignee');
     const own2 = JSON.parse(fs.readFileSync(path.join(R.home, 'ownership.json'), 'utf8'));
     assert.ok(!own2[createdKey], 'release freed ownership');
+
+    // ── ask(@FirstName) → the digest from a SECOND session surfaces it as @you ──
+    // THE BLOCKER this fix closes: a caller types the viewer's FIRST name, but the
+    // digest @you matcher used to be built only from displayName. Post an ask with
+    // the first-name mention and prove a fresh-session digest promotes it to @you.
+    const viewerFull = await swb.getViewer(LIVE_KEY);
+    const firstName = String(viewerFull.name || '').trim().split(/\s+/)[0];
+    assert.ok(firstName, 'viewer has a first name to mention');
+    const qText = `does the digest surface a @${firstName} first-name mention? probe ${Date.now()}`;
+    const ak = await R.run(['ask', createdKey, `@${firstName}`, qText]);
+    assert.strictEqual(ak.code, 0, ak.out);
+    // ask canonicalized the first-name @target to the member's @displayName handle
+    assert.ok(
+      ak.out.includes(`@${viewerFull.displayName}`),
+      `ask canonicalized @${firstName} → @${viewerFull.displayName}: ${ak.out}`
+    );
+
+    // Second session: fresh cursor (epoch) + forced refetch so the new comment is
+    // in-cache. Delete the cache so `sync` refetches the just-posted ask comment.
+    try { fs.unlinkSync(path.join(R.home, 'cache.json')); } catch (_) {}
+    const dg = await R.run(['sync', '--session', 'live2']);
+    assert.strictEqual(dg.code, 0, dg.out);
+    liveDigestOut = dg.out;
+    // the mention must appear as an @you line pointing at our issue
+    assert.match(dg.out, new RegExp(`@you\\s+${createdKey}\\b`), `digest surfaces @you for ${createdKey}: ${dg.out}`);
+    assert.ok(dg.out.includes(`→ swb show ${createdKey}`), 'digest @you line has the show pointer');
   } finally {
     // Unconditional teardown: delete ALL swb-test issues so the board ends clean.
     try { await teardownSwbTestIssues(LIVE_TEAM, LIVE_KEY); } catch (_) { /* best-effort */ }
@@ -846,4 +1003,8 @@ test('LIVE round-trip: sync → new(Triage) → show → claim(In Progress) → 
   // Board must have zero swb-test issues afterwards.
   const after = await listSwbTestIssues(LIVE_TEAM, LIVE_KEY);
   assert.strictEqual(after.length, 0, 'teardown left zero swb-test issues on the board');
+  // Emit the captured @you digest as proof of the closed Q&A-notification loop.
+  if (liveDigestOut) {
+    process.stdout.write('\n===== LIVE @you DIGEST (proof) =====\n' + liveDigestOut + '===== END LIVE DIGEST =====\n');
+  }
 });

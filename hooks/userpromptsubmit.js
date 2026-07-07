@@ -165,6 +165,34 @@ function viewerName(viewer) {
   return String(viewer.displayName || viewer.name || '');
 }
 
+// Broadened @you handle set — MUST mirror swb.js's viewerHandleTokens so the hook
+// and the CLI agree on what counts as a mention of "me". A caller can type
+// @<displayName>, @<FirstName>, or @<Full Name>; any surfaces the comment as @you.
+// viewer may be a v2 {name, displayName} object OR a bare name string (the
+// reference test passes 'marc'). Deduped, order preserved.
+function viewerHandleTokens(viewer) {
+  const tokens = [];
+  if (viewer && typeof viewer === 'object') {
+    if (viewer.displayName) tokens.push(String(viewer.displayName));
+    if (viewer.name) { tokens.push(firstWord(viewer.name)); tokens.push(String(viewer.name).trim()); }
+  } else if (viewer) {
+    const s = String(viewer);
+    tokens.push(s);
+    tokens.push(firstWord(s));
+  }
+  const seen = new Set();
+  const out = [];
+  for (const t of tokens) {
+    const v = String(t || '').trim();
+    if (!v) continue;
+    const lc = v.toLowerCase();
+    if (seen.has(lc)) continue;
+    seen.add(lc);
+    out.push(v);
+  }
+  return out;
+}
+
 // Build the delta item list from cache + ownership since the cursor's lastSeenTs.
 // Item order within a category preserves cache order; @you always sorts first.
 function buildItems(cache, ownership, viewer, sinceMs) {
@@ -175,21 +203,21 @@ function buildItems(cache, ownership, viewer, sinceMs) {
   for (const it of issues) { if (it && it.key) byKey.set(it.key, it); }
 
   // viewer may arrive as a v2 {name, displayName} object OR a bare name string
-  // (the reference test passes 'marc' directly). Resolve to the handle token.
+  // (the reference test passes 'marc' directly). Resolve to the handle token used
+  // for self-suppression (don't surface my own comments).
   const you = viewerName(viewer).toLowerCase();
-  // Match on the FIRST word of the handle so a "Turni Saha" viewer still keys
-  // off "turni" — identical to swb.js's firstWord(viewerName) mention logic.
-  const youToken = firstWord(you);
-  // Only an actual @-mention counts (word-boundaried), never a bare substring —
-  // otherwise short names (sam→"same", ana→"banana") falsely promote comments to
-  // the top @you slot. This IS the @-word-boundary regex CONTRACTS.md mandates;
-  // v2 stores no mentions[] array, so the body is the ONLY source.
-  const mentionRe = youToken
-    ? new RegExp('@' + escapeRe(youToken) + '\\b', 'i')
-    : null;
+  // Broadened @you matcher: one word-boundaried, case-insensitive @regex per
+  // handle token (displayName / first name / full name) — mirrors swb.js's
+  // mentionRegexesFor so the CLI and the hook agree. Word-boundaried so short
+  // names (sam→"same", ana→"banana") never substring-promote a comment. v2 stores
+  // no mentions[] array, so the body is the ONLY source.
+  const mentionRes = viewerHandleTokens(viewer).map(
+    (tok) => new RegExp('@' + escapeRe(tok) + '\\b', 'i')
+  );
   const mentionsYou = (body) => {
-    if (!mentionRe) return false;
-    return mentionRe.test(String(body || ''));
+    if (!mentionRes.length) return false;
+    const text = String(body || '');
+    return mentionRes.some((re) => re.test(text));
   };
 
   // @you — new comments addressed to the viewer (author ≠ viewer)
@@ -434,5 +462,5 @@ module.exports = {
   buildItems, renderDigest, computeDigestInline, computeDigest,
   digestLooksWellFormed, advanceCursor,
   readJsonSafe, cachePath, cursorPath, ownershipPath, eventsPath, swbHome,
-  sanitizeId, tsMs,
+  sanitizeId, tsMs, viewerName, viewerHandleTokens,
 };
