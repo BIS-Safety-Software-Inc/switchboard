@@ -599,7 +599,15 @@ disc   auth middleware strips X-Custom headers <span class="dim">(Dana)</span>
     </div>
 
     <h3>Fail-open recipes</h3>
-    <p>Any <code>swb</code> verb that hits an error prints <code>MANUAL RECIPE:</code> followed by numbered steps that accomplish the same thing by hand in the Linear UI / terminal, then exits with code <code>2</code>. You are never blocked on the tool. A claim that loses the verify-race backs off and exits <code>3</code> — re-run once the holder releases.</p>
+    <p>Any <code>swb</code> verb that hits an error prints a <code>MANUAL RECIPE:</code> — a headline of what it was trying to do, numbered steps that accomplish the same thing by hand in the Linear UI / terminal, and a final <code>cause:</code> line with the raw error — then exits with code <code>2</code>. You are never blocked on the tool. A claim that loses the verify-race backs off and exits <code>3</code> — re-run once the holder releases.</p>
+    <div class="term" role="img" aria-label="Example fail-open MANUAL RECIPE output printed by swb done">
+<pre><span class="dim">▶ running test gate: node --test</span>
+<span class="amb">MANUAL RECIPE:</span> done requires --pr &lt;url&gt; for HAC-42
+  1. Ensure tests pass locally: node --test
+  2. Open the PR for HAC-42 and copy its URL
+  3. Move HAC-42 to "In Review" in Linear
+  4. Post a summary comment on HAC-42 describing what changed</pre>
+    </div>
 
     <h3>If the hooks go quiet (no digest appearing)</h3>
     <ul class="tight">
