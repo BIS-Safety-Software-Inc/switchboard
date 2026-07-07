@@ -28,10 +28,28 @@ Spec context: `~/Desktop/AI Hackathon/switchboard-spec.html`. Read it once befor
 | File | Format | Owner |
 |---|---|---|
 | `env` | `KEY=VALUE` lines: `LINEAR_API_KEY`, optional `SWB_TEAM_KEY` | user |
-| `cache.json` | `{fetchedAt: ISO, teamKey, issues: [...], comments: [...], states: {...}}` | swb |
+| `cache.json` | CANONICAL SCHEMA v2 below — swb.js writes it, hooks read it, fixtures mirror it EXACTLY | swb |
 | `cursors/<sessionId>.json` | `{lastSeenTs: ISO, lastInjectTs: ISO}` | hooks |
 | `events.jsonl` | one JSON/line: `{ts, cmd, args, sessionId, ok, ms, error?}` — EVERY verb + hook appends | all |
 | `ownership.json` | `{ "<ISSUE-KEY>": {files: [globs], assignee, sessionId, ts} }` | swb |
+
+### cache.json CANONICAL SCHEMA v2 (locked by mastermind, iter 2 — supersedes all prior shapes)
+
+```json
+{
+  "fetchedAt": "ISO",
+  "teamKey": "HAC",
+  "viewer": { "name": "Turni Saha", "displayName": "turni" },
+  "states": { "Triage": {"linearName": "Backlog", "id": "..."}, "Ready": {"linearName": "Todo", "id": "..."},
+              "In Progress": {"linearName": "In Progress", "id": "..."}, "In Review": {"linearName": "In Review", "id": "..."},
+              "Done": {"linearName": "Done", "id": "..."} },
+  "issues": [ { "key": "HAC-12", "title": "...", "state": "Ready", "assignee": "name-or-null",
+                "createdAt": "ISO", "updatedAt": "ISO" } ],
+  "comments": [ { "issueKey": "HAC-12", "author": "name", "body": "...", "createdAt": "ISO", "discovery": false } ]
+}
+```
+
+Rules: `issues[].state` uses SWB state names (mapped at fetch time). `comments[].discovery` is true iff the comment sits on the pinned Discoveries issue (label `swb-meta`). Mentions are NEVER stored — consumers compute them from `body` with the word-boundary `@name` regex. Home dir env override: **`SWITCHBOARD_HOME` is the ONE name** (swb.js, hooks, installer all honor it; `SWB_HOME` is dead).
 
 Repo-local: `.swb.json` → `{"teamKey": "SWB-or-team", "testCommand": "node --test", "defaultBranch": "master"}`.
 Team resolution order: `.swb.json` teamKey → env `SWB_TEAM_KEY`. **Refuse to run without a resolved team.** All queries/mutations are filtered to that ONE team.
@@ -87,6 +105,7 @@ All three hooks: read stdin JSON (`session_id`, `cwd`, `tool_input`...), never b
 
 ## Definition of done per component
 
-- Unit tests green via `node --test` on Node 18+, no network.
+- Unit tests green via `node --test` (bare auto-discover form — `node --test test/` breaks on Node 22) on Node 18+, no network.
+- LIVE round-trip tests (gated behind `SWB_LIVE_LINEAR_KEY`, team via `SWB_LIVE_TEAM_KEY` default HAC) exist for sync + show + new→claim→done, with swb-test label hygiene + teardown. Mock-only green is NOT done — the iter-1 P0s shipped precisely because mocks substring-matched buggy GraphQL.
 - `swb doctor` green on this machine against team `HAC` (the designated scratch board; label-hygiene rules above are MANDATORY).
 - Every claim in README/INSTALL verified by actually running the command.
