@@ -307,3 +307,18 @@ test('installer leaves an unparseable settings.json untouched', () => {
     assert.ok(fs.existsSync(settingsPath + '.swb-unparseable'));
   });
 });
+
+test('installer drops the /swb-tour command and stays idempotent', () => {
+  withTempHome((home) => {
+    const res = runInstaller(home);
+    assert.equal(res.status, 0, res.stdout + res.stderr);
+    const tourPath = path.join(home, '.claude', 'commands', 'swb-tour.md');
+    assert.ok(fs.existsSync(tourPath), 'swb-tour.md copied into ~/.claude/commands/');
+    const first = fs.readFileSync(tourPath, 'utf8');
+    assert.match(first, /Switchboard tour/i, 'tour content present');
+
+    const res2 = runInstaller(home); // re-run must not fail or mangle the file
+    assert.equal(res2.status, 0);
+    assert.equal(fs.readFileSync(tourPath, 'utf8'), first, 'tour file identical after re-run');
+  });
+});

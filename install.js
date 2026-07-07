@@ -50,13 +50,14 @@ function resolveHome() {
 
 // ── arg parsing ──────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const args = { key: null, force: false, noPrompt: false, help: false };
+  const args = { key: null, force: false, noPrompt: false, noOpen: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--key' || a === '--linear-key') { args.key = argv[++i]; }
     else if (a.startsWith('--key=')) { args.key = a.slice('--key='.length); }
     else if (a === '--force') { args.force = true; }
     else if (a === '--no-prompt' || a === '--yes' || a === '-y') { args.noPrompt = true; }
+    else if (a === '--no-open') { args.noOpen = true; }
     else if (a === '--help' || a === '-h') { args.help = true; }
   }
   return args;
@@ -74,6 +75,7 @@ Options:
   --force                  Allow an exported LINEAR_API_KEY (or a prompt) to REPLACE the
                            key already saved in ~/.switchboard/env.
   --no-prompt, -y          Never prompt; skip the key if none is supplied.
+  --no-open                Don't open PLAYBOOK.html in the browser at the end.
   --help, -h               Show this help.
 
 Environment:
@@ -328,6 +330,40 @@ function onPath(dir) {
   return parts.some((p) => p && norm(p) === target);
 }
 
+// ── /swb-tour command ──────────────────────────────────────────────────────────
+// Copies the guided-tour slash command into ~/.claude/commands/ so a dev can type
+// /swb-tour in any Claude Code session and be walked through the real loop.
+function installTourCommand(claudeDir) {
+  const src = path.join(REPO_ROOT, 'commands', 'swb-tour.md');
+  if (!fs.existsSync(src)) {
+    warn(`tour command source missing at ${src}; skipping /swb-tour install.`);
+    return;
+  }
+  const cmdDir = path.join(claudeDir, 'commands');
+  fs.mkdirSync(cmdDir, { recursive: true });
+  const dest = path.join(cmdDir, 'swb-tour.md');
+  fs.copyFileSync(src, dest);
+  ok(`/swb-tour command at ${dest}`);
+}
+
+// ── open the playbook ──────────────────────────────────────────────────────────
+// Best-effort, fail-soft: a broken opener must never fail the install. Skipped in
+// non-TTY runs (tests, CI) and with --no-open.
+function openPlaybook(args) {
+  const playbook = path.join(REPO_ROOT, 'PLAYBOOK.html');
+  if (!fs.existsSync(playbook)) return;
+  info(`playbook: ${playbook}`);
+  if (args.noOpen || !process.stdout.isTTY) return;
+  try {
+    if (process.platform === 'darwin') cp.spawn('open', [playbook], { detached: true, stdio: 'ignore' }).unref();
+    else if (IS_WINDOWS) cp.spawn('cmd', ['/c', 'start', '', playbook], { detached: true, stdio: 'ignore' }).unref();
+    else cp.spawn('xdg-open', [playbook], { detached: true, stdio: 'ignore' }).unref();
+    ok('opened PLAYBOOK.html in your browser');
+  } catch (err) {
+    warn(`could not open the playbook automatically (${err.message}) — open it yourself: ${playbook}`);
+  }
+}
+
 // ── run swb doctor ─────────────────────────────────────────────────────────────
 const DOCTOR_TIMEOUT_MS = 30000;
 
@@ -398,29 +434,34 @@ async function main() {
 
   console.log(color('1', 'switchboard installer'));
 
-  step('1/6  Checking Node');
+  step('1/7  Checking Node');
   verifyNode();
 
   const home = resolveHome();
   const swbDir = path.join(home, '.switchboard');
   const claudeDir = path.join(home, '.claude');
 
-  step('2/6  Creating ~/.switchboard/');
+  step('2/7  Creating ~/.switchboard/');
   ensureTree(swbDir);
 
-  step('3/6  Configuring Linear API key');
+  step('3/7  Configuring Linear API key');
   await writeEnv(swbDir, args);
 
-  step('4/6  Registering Claude Code hooks');
+  step('4/7  Registering Claude Code hooks');
   mergeSettings(claudeDir);
 
-  step('5/6  Installing swb shim');
+  step('5/7  Installing swb shim');
   installShim(home);
 
-  // step 6 = doctor
+  step('6/7  Installing /swb-tour command');
+  installTourCommand(claudeDir);
+
+  // step 7 = doctor
   runDoctor(swbDir);
 
-  console.log(`\n${color('32', 'Done.')} switchboard installed. Next: open a Claude Code session and run  swb sync`);
+  openPlaybook(args);
+
+  console.log(`\n${color('32', 'Done.')} switchboard installed. Next: open a Claude Code session and type  /swb-tour`);
 }
 
 // Only run the installer when invoked directly (node install.js), never on require().

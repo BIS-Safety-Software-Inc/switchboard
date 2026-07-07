@@ -28,7 +28,7 @@ git clone https://github.com/BIS-Safety-Software-Inc/switchboard.git && cd switc
 git clone https://github.com/BIS-Safety-Software-Inc/switchboard.git; cd switchboard; node install.js
 ```
 
-The installer walks six steps and is **safe to run twice** (it never duplicates
+The installer walks seven steps and is **safe to run twice** (it never duplicates
 hooks or overwrites your settings):
 
 1. verifies Node ≥ 18
@@ -36,7 +36,17 @@ hooks or overwrites your settings):
 3. asks for (or accepts) your `LINEAR_API_KEY` and writes `~/.switchboard/env` (mode `600` on macOS/Linux)
 4. registers the three Claude Code hooks by **merging** into `~/.claude/settings.json` (your existing hooks are backed up to `settings.json.swb-bak` and left untouched)
 5. drops a `swb` shim on your `PATH`
-6. runs `swb doctor` and prints the result
+6. installs the `/swb-tour` command into `~/.claude/commands/`
+7. runs `swb doctor`, prints the result, and opens `PLAYBOOK.html` in your browser (skip with `--no-open`)
+
+### After installing: take the tour
+
+Open a Claude Code session and type `/swb-tour`. Your own Claude walks you through
+the real loop on a disposable practice ticket — create → promote → claim → digest →
+done — in about 10 minutes. Then grab a teammate who has also installed and run
+**Part 2** together: that's where the multiplayer shows up (their claim arriving in
+your digest, the `@you` Q&A round-trip, the claim race). Solo, the digest is
+deliberately quiet — it only ever shows what OTHER people do.
 
 ### Providing the key without a prompt
 

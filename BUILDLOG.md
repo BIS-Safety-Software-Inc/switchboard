@@ -24,3 +24,6 @@
 - Playbook verified against live tool (zero material divergences). DRYRUN-CHECKLIST.md + evidence/INDEX.md written.
 - Fleet ops note: every agent failure this build was a StructuredOutput emit, never the work — final iterations switched to plain-text verdicts.
 - REMAINING FOR HUMANS: real-Windows install test (Jul 9), key rotation before Jul 13, VS Code-free onboarding of 16 devs per checklist.
+
+## 2026-07-07 · Onboarding (mastermind: Fable)
+- Owner decision: no video; tour + auto-open playbook. /swb-tour command (installer copies to ~/.claude/commands/) = guided hands-on: Part 1 solo mechanics, Part 2 PAIRED — solo digest is quiet BY DESIGN (deltas + self-suppression), so all cross-agent behavior (claim arrival, @you round-trip, race, guard) is buddy-based. Installer: 7 steps, opens PLAYBOOK.html at end (--no-open to skip; auto-skipped when not a TTY so tests/CI never pop a browser). 70 tests green.
