@@ -1,0 +1,57 @@
+{
+  "fetchedAt": "2026-07-06T14:22:00.000Z",
+  "teamKey": "HAC",
+  "viewer": "marc",
+  "issues": [
+    {
+      "key": "HAC-23",
+      "title": "Quiz progress schema",
+      "assignee": "sarah",
+      "state": "In Progress",
+      "createdAt": "2026-07-06T10:00:00.000Z",
+      "updatedAt": "2026-07-06T10:00:00.000Z",
+      "stateChangedAt": "2026-07-06T10:00:00.000Z"
+    },
+    {
+      "key": "HAC-31",
+      "title": "Player UI shell for the lesson runtime",
+      "assignee": "marc",
+      "state": "In Progress",
+      "createdAt": "2026-07-06T09:00:00.000Z",
+      "updatedAt": "2026-07-06T14:20:00.000Z",
+      "stateChangedAt": "2026-07-06T14:20:00.000Z"
+    },
+    {
+      "key": "HAC-40",
+      "title": "New triage ticket about auth headers",
+      "assignee": null,
+      "state": "Triage",
+      "createdAt": "2026-07-06T14:19:00.000Z",
+      "updatedAt": "2026-07-06T14:19:00.000Z",
+      "stateChangedAt": "2026-07-06T14:19:00.000Z"
+    }
+  ],
+  "comments": [
+    {
+      "issueKey": "HAC-23",
+      "author": "sarah",
+      "body": "@marc does quiz_progress need a composite key per attempt?",
+      "createdAt": "2026-07-06T14:18:00.000Z",
+      "mentions": ["marc"]
+    },
+    {
+      "issueKey": "HAC-18",
+      "author": "dana",
+      "body": "auth middleware strips X-Custom headers",
+      "createdAt": "2026-07-06T14:17:00.000Z",
+      "discovery": true
+    }
+  ],
+  "states": {
+    "Triage": "Backlog",
+    "Ready": "Todo",
+    "In Progress": "In Progress",
+    "In Review": "In Review",
+    "Done": "Done"
+  }
+}

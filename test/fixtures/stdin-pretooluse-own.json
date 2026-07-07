@@ -1,0 +1,9 @@
+{
+  "session_id": "sess-marc-1",
+  "cwd": "/repo/switchboard",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/repo/switchboard/src/player/shell.tsx"
+  }
+}
