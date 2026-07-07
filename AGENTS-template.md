@@ -76,6 +76,22 @@ Mentions to you (`@you`) always sort first. Detail lives behind `swb show <KEY>`
 
 ---
 
+## Deep reads: spawn a reader subagent, protect your context
+
+The digest gives you headlines; full tickets live behind `swb show`. When MORE
+than one ticket needs a deep read (an @you question plus its linked tickets, or
+"did anything today touch my files?"), do NOT swallow whole tickets into your
+own context — spawn a read-only subagent and keep the conclusion:
+
+> Task: run `swb show HAC-23` and `swb show HAC-31` (and `swb board` for
+> orientation). Report ONLY what affects `src/player/**` and any decision I'm
+> being asked to make. Two paragraphs max.
+
+Rules: reader subagents are READ-ONLY (`sync` / `show` / `board` / `members` —
+never `claim`/`ask`/`done`); one claim's work stays in one main session. The PM
+runs the standing version of this: an hourly board-reader sweep that deep-reads
+everything and reports stuck tickets, aging @asks, and scope drift.
+
 ## `swb` verb crib sheet
 
 | Verb | You run it to… | Notes |
