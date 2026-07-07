@@ -634,13 +634,16 @@ test('release: unassigns, frees ownership, keeps branch (exit 0)', async () => {
   const cwd = mkRepo();
   fs.writeFileSync(path.join(home, 'ownership.json'), JSON.stringify({ 'HAC-14': { files: ['src/*'], assignee: 'Turni', sessionId: 's1', ts: 'x' } }));
   await withEnv(home, 'lin_test_key', async () => {
+    let releaseVars = null;
     installFetch([
       H.viewer('Turni'),
+      H.teamByKey(FULL_STATES), // release now resolves the Ready state id
       issueByKey({ id: 'i-14', identifier: 'HAC-14', title: 't', team: { id: 'team-1', key: 'HAC' }, state: { id: 'st-inprogress', name: 'In Progress' }, assignee: { id: 'u-me', name: 'Turni' }, labels: { nodes: [] } }),
-      { match: (q) => has(q, 'issueUpdate') && has(q, 'assigneeId: null'), reply: { issueUpdate: { success: true } } },
+      { match: (q) => has(q, 'issueUpdate') && has(q, 'assigneeId: null'), reply: (q, v) => { releaseVars = v; return { issueUpdate: { success: true } }; } },
       H.commentCreate(),
     ]);
     const { code, out } = await runVerb(['release', 'HAC-14'], { home, cwd });
+    assert.strictEqual(releaseVars && releaseVars.stateId, 'st-todo', 'release moves the ticket back to Ready (Todo)');
     assert.strictEqual(code, 0, out);
     assert.match(out, /released HAC-14 \(branch kept\)/);
     const own = JSON.parse(fs.readFileSync(path.join(home, 'ownership.json'), 'utf8'));

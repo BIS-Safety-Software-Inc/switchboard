@@ -411,6 +411,13 @@ function viewerIdentityTokens(viewer) {
   }
   return out;
 }
+// Which agent harness is driving this process? Used for the board-visible
+// claim label. CLAUDECODE is set by Claude Code sessions; CODEX_* by Codex.
+function harnessName() {
+  if (process.env.CLAUDECODE) return 'claude';
+  if (process.env.CODEX_SANDBOX || process.env.CODEX_HOME || process.env.CODEX_THREAD_ID) return 'codex';
+  return 'agent';
+}
 // Accept either a plain name string or the v2 cache viewer object {name, displayName}.
 function viewerNameOf(v) {
   if (!v) return '';
@@ -689,6 +696,19 @@ async function verbClaim(ctx) {
     } else {
       out.write('⚠ not in a git repo — skipping worktree creation\n');
     }
+    // Board-visible agent attribution: label the issue with the harness that
+    // claimed it (claude / codex / agent). The signed comment is the audit trail;
+    // the label is the at-a-glance chip judges and PMs see on every board row.
+    try {
+      const labelId = await ensureLabel(issue.team.id, harnessName(), apiKey);
+      const existing = (issue.labels && issue.labels.nodes ? issue.labels.nodes : []).map((l) => l.id);
+      if (!existing.includes(labelId)) {
+        await linear(
+          `mutation($id: String!, $labelIds: [String!]) { issueUpdate(id: $id, input: { labelIds: $labelIds }) { success } }`,
+          { id: issue.id, labelIds: [...existing, labelId] }, apiKey
+        );
+      }
+    } catch (_) { /* labeling is best-effort — never fail a claim over a chip */ }
     // ownership.json
     const own = readOwnership();
     own[key] = { files, assignee: viewer.name, sessionId, ts: new Date().toISOString() };
@@ -978,10 +998,12 @@ async function verbRelease(ctx) {
   try {
     const viewer = await getViewer(apiKey);
     const issue = await findIssueByKey(teamKey, key, apiKey);
-    // free the assignee (set back to unassigned) — keep branch
-    const q = `mutation($id: String!) {
-      issueUpdate(id: $id, input: { assigneeId: null }) { success } }`;
-    await linear(q, { id: issue.id }, apiKey);
+    // free the assignee AND send it back to Ready — an unassigned "In Progress"
+    // ticket is a lie on the board (seen live: nobody owns it, nobody can grab it).
+    const { stateId } = await getStateIdByName(teamKey, 'Ready', apiKey);
+    const q = `mutation($id: String!, $stateId: String) {
+      issueUpdate(id: $id, input: { assigneeId: null, stateId: $stateId }) { success } }`;
+    await linear(q, { id: issue.id, stateId }, apiKey);
     const own = readOwnership();
     if (own[key]) { delete own[key]; writeOwnership(own); }
     await postComment(issue.id, `Released ${key}. File ownership freed; branch kept.`, viewer.name, apiKey);
