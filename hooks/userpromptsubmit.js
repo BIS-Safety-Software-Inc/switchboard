@@ -461,8 +461,11 @@ async function main() {
       const headline = itemLines.length
         ? `${itemLines.length} board update${itemLines.length === 1 ? '' : 's'} · ${trunc(itemLines[0].replace(/\s+/g, ' '), 70)}`
         : 'board update';
+      // Bright-yellow background + black text (ANSI 103/30) so the receipt is
+      // unmissable in the terminal — same in-terminal rendering trick the coach
+      // project validated for systemMessage.
       process.stdout.write(JSON.stringify({
-        systemMessage: `switchboard: ${headline} — full digest delivered to your agent`,
+        systemMessage: `\u001b[103;30m switchboard: ${headline} — full digest delivered to your agent \u001b[0m`,
         hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text },
       }));
     }
