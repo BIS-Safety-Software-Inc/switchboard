@@ -461,9 +461,25 @@ async function main() {
       const itemLines = text.split('\n').filter((l) => /^(@you|claim|state|disc|new)\s/.test(l));
       const count = itemLines.length || 1;
       const head = `switchboard: ${count} board update${count === 1 ? '' : 's'}`;
-      const blockLines = [head, ...text.split('\n').filter((l) => l.trim())];
-      const width = Math.max(...blockLines.map((l) => l.length), 40);
-      const paint = (l) => `\u001b[103;30m ${l.padEnd(width)} \u001b[0m`;
+      // Solid box: wrap long lines OURSELVES to a fixed width, then pad every
+      // row to that same width. Padding to the longest raw line let 300-char
+      // @you lines exceed the terminal width — each row wrapped mid-paint and
+      // the block rendered as broken yellow stripes (first-user report).
+      const BOX_W = 88;
+      const wrap = (l) => {
+        const rows = [];
+        let rest = l;
+        while (rest.length > BOX_W) {
+          let cut = rest.lastIndexOf(' ', BOX_W);
+          if (cut < BOX_W - 20) cut = BOX_W; // no nearby space → hard break
+          rows.push(rest.slice(0, cut));
+          rest = '       ' + rest.slice(cut).trimStart(); // continuation indent
+        }
+        rows.push(rest);
+        return rows;
+      };
+      const blockLines = [head, ...text.split('\n').filter((l) => l.trim())].flatMap(wrap);
+      const paint = (l) => `\u001b[103;30m ${l.padEnd(BOX_W)} \u001b[0m`;
       process.stdout.write(JSON.stringify({
         systemMessage: blockLines.map(paint).join('\n'),
         hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text },

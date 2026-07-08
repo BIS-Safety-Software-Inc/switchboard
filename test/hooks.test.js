@@ -106,6 +106,12 @@ test('userpromptsubmit: emits UserPromptSubmit additionalContext on non-empty de
     // 103/30 per line), full content — no truncated teaser (owner call).
     const receiptLines = parsed.systemMessage.split('\n');
     assert.ok(receiptLines.every((l) => l.includes('\u001b[103;30m') && l.includes('\u001b[0m')), 'every line painted yellow');
+    // Solid box: every painted row is the SAME width and none exceeds the box
+    // (long lines are wrapped, not padded to the longest raw line).
+    const contents = receiptLines.map((l) => l.replace(/\u001b\[[0-9;]*m/g, ''));
+    const widths = new Set(contents.map((c) => c.length));
+    assert.strictEqual(widths.size, 1, 'uniform row width: ' + [...widths].join(','));
+    assert.ok([...widths][0] <= 92, 'rows fit a normal terminal');
     const stripped = parsed.systemMessage.replace(/\u001b\[[0-9;]*m/g, '');
     assert.match(stripped, /switchboard: \d+ board updates?/, 'count headline');
     assert.ok(stripped.includes('@you'), 'full digest content visible to the human');
