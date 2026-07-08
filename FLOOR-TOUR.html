@@ -56,6 +56,22 @@
   .stage { border:1.5px solid var(--ink); border-radius:999px; padding:.22rem .7rem; font-family:ui-monospace,Menlo,monospace; font-size:.72rem; font-weight:650; background:var(--panel); white-space:nowrap; }
   .arrow { color:var(--muted); font-family:ui-monospace,Menlo,monospace; }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  /* ── the everything-diagram ── */
+  .bigmap { border:1.5px solid var(--line); border-radius:12px; background:var(--panel); padding:1rem; margin:.8rem 0; }
+  .lanes { display:grid; grid-template-columns: 1fr 1.1fr 1fr; gap:.6rem; }
+  .lane { min-width:0; }
+  .lane h4 { font-family:ui-monospace,Menlo,monospace; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:.2rem 0 .5rem; text-align:center; }
+  .actor { border:1.5px solid var(--ok); border-radius:8px; background:var(--ground); padding:.45rem .6rem; font-size:.75rem; margin:.35rem 0; }
+  .actor.ai { border-color:var(--accent); }
+  .actor.hubbox { border:2px solid var(--accent); background:var(--accent-soft); text-align:center; font-weight:700; }
+  .actor b { font-family:ui-monospace,Menlo,monospace; font-size:.78rem; }
+  .flowrow { display:grid; grid-template-columns: 2rem 1fr; gap:.5rem; align-items:start; margin:.45rem 0; }
+  .fnum { font-family:ui-monospace,Menlo,monospace; font-weight:800; font-size:.8rem; color:var(--ground); background:var(--accent); border-radius:999px; width:1.5rem; height:1.5rem; display:flex; align-items:center; justify-content:center; }
+  .fnum.g { background:var(--gate); }
+  .fnum.s { background:var(--warn); }
+  .flowrow p { margin:.1rem 0; font-size:.83rem; max-width:none; }
+  .flowrow .mono { font-family:ui-monospace,Menlo,monospace; font-size:.72rem; color:var(--muted); }
+  .yline { background:var(--yellow); color:var(--yellow-ink); font-family:ui-monospace,Menlo,monospace; font-size:.68rem; padding:.15rem .4rem; border-radius:4px; display:inline-block; }
 </style>
 
 <div class="app">
@@ -87,6 +103,44 @@
   <p><b>Awareness comes down</b> automatically: every time you message your agent, a short report of what changed on the board since your last look is handed to it — and you see it as the <b>yellow block</b> in your terminal.</p>
   <div class="term"><span class="y"> switchboard: 1 board update </span><br><span class="y"> @you  HAC-296 Preeti: "Single id is enough here…" → swb show HAC-296 </span></div>
   <p>No machine ever talks to another machine. <b>If it's not on the board, it didn't happen.</b> That's the whole architecture — a 7th or 8th person is just one more spoke.</p>
+</section>
+
+<section class="step" data-title="1b · Everything, one picture">
+  <div class="crumb">The whole machine in plain words</div>
+  <h2>Everything possible, on one screen</h2>
+  <div class="bigmap">
+    <div class="lanes">
+      <div class="lane"><h4>You</h4>
+        <div class="actor"><b>A person</b><br>talks to their AI in plain English; clicks the purple decisions in Linear</div>
+        <div class="actor ai"><b>Their AI agent</b><br>does the work; touches the board only through <code>swb</code> commands</div>
+      </div>
+      <div class="lane"><h4>The shared board (Linear)</h4>
+        <div class="actor hubbox">EVERY TICKET, COMMENT &amp; STATUS<br><span style="font-weight:400;font-size:.7rem">the one place everything crosses — if it's not here, it didn't happen</span></div>
+        <div class="actor" style="text-align:center;font-size:.7rem;border-style:dashed">columns: Ideas pile (Backlog) → To-do (Todo) → Being built (In Progress) → Awaiting review (In Review) → Done</div>
+      </div>
+      <div class="lane"><h4>Each teammate (×7)</h4>
+        <div class="actor"><b>A person</b><br>same setup, own Linear account &amp; key</div>
+        <div class="actor ai"><b>Their AI agent</b><br>hears about your moves automatically</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>The journey of one piece of work</h3>
+  <div class="flowrow"><span class="fnum">1</span><p><b>Propose.</b> Anyone's agent (or any person) writes a ticket idea → it lands in the <b>ideas pile</b> (Backlog). Agents cannot put anything straight onto the to-do list.<br><span class="mono">swb new "build the quiz screen"</span></p></div>
+  <div class="flowrow"><span class="fnum g">G1</span><p><b>A person promotes.</b> The team's Backlog sweeper reads the idea and drags the real ones to <b>To-do</b>. Junk dies here. <i>(purple = a human decision)</i></p></div>
+  <div class="flowrow"><span class="fnum g">G2</span><p><b>A person says "take it."</b> An agent wanting a to-do ticket is stopped by the built-in doorman and must ask its human in chat — "want me to claim HAC-31?" — yes → it takes the ticket. Works even with all permission popups turned off. <i>(teams can switch this doorman off for a self-serve swarm)</i></p></div>
+  <div class="flowrow"><span class="fnum">2</span><p><b>Taking it does five things at once:</b> your name goes on the ticket · a <span class="mono">claude</span> tag appears · a signed note says which files you'll touch · a separate safe copy of the code is made · and the full ticket text is read to your agent so it builds the right thing.</p></div>
+  <div class="flowrow"><span class="fnum">3</span><p><b>Everyone else finds out automatically.</b> Next time any teammate messages their AI, a short report rides along — and they see the yellow receipt:<br><span class="yline"> switchboard: 1 board update · claim HAC-31 → Turni </span></p></div>
+  <div class="flowrow"><span class="fnum">4</span><p><b>Questions travel through tickets.</b> "Ask Preeti if the schema needs a composite key" → lands in HER next report, top line, marked @you → her AI drafts an answer → she approves → it rides back to you. Nobody got interrupted; the exchange is saved forever.</p></div>
+  <div class="flowrow"><span class="fnum">5</span><p><b>Finishing is earned, not declared.</b> "Mark it done" → the team's tests run FIRST. Tests fail = refused. Tests pass + a PR exists = the ticket moves to <b>Awaiting review</b>.<br><span class="mono">swb done HAC-31 --pr …</span> <i>(also behind the G2 doorman)</i></p></div>
+  <div class="flowrow"><span class="fnum g">G3</span><p><b>A person accepts.</b> Someone reads the code changes, merges them, drags the ticket to <b>Done</b>. An agent can never mark its own work finished.</p></div>
+
+  <h3>The safety nets (always on)</h3>
+  <div class="flowrow"><span class="fnum s">⚔</span><p><b>Two agents grab the same ticket?</b> Exactly one wins; the other is told immediately and walks away clean.</p></div>
+  <div class="flowrow"><span class="fnum s">⚠</span><p><b>Someone's agent touches files you claimed?</b> Their screen warns them with your name and ticket — informed, never blocked.</p></div>
+  <div class="flowrow"><span class="fnum s">🛟</span><p><b>The tool breaks mid-action?</b> It prints the exact by-hand steps to finish in Linear — nobody is ever stuck because of the tool.</p></div>
+  <div class="flowrow"><span class="fnum s">👁</span><p><b>Want the whole picture anytime?</b> <span class="mono">swb board</span> — every ticket, every owner, one command. The report only shows what CHANGED; the board shows everything.</p></div>
+  <p class="chips" style="margin-top:1rem"><span class="must">MUST</span> own account+key · joined team · named sweeper · writes only via swb &nbsp;&nbsp;<span class="dial">DIAL</span> everything else — including switching G2 off.</p>
 </section>
 
 <section class="step" data-title="2 · Setup (the MUSTs)">
