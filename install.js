@@ -577,8 +577,14 @@ async function main() {
   // step 7 = doctor
   runDoctor(swbDir);
 
-  // Reference doc: print the path, don't open a second tab over the Floor Tour.
-  info(`reference playbook: ${path.join(REPO_ROOT, 'PLAYBOOK.html')}`);
+  // The kit's document set — say what each is, so nothing sits in the folder
+  // unannounced. Floor Tour already opened in the browser at step zero.
+  step('Your kit documents');
+  info(`FLOOR-TOUR.html      how the whole system works (already open in your browser)`);
+  info(`PLANNING-DAY.html    the question list your team answers on planning day (July 13)`);
+  info(`AGENTS-TEMPLATE.html the agent contract, color-coded — your planning answers fill the green blanks`);
+  info(`PLAYBOOK.html        full reference for everything above`);
+  info(`(all in ${REPO_ROOT})`);
 
   console.log(`\n${color('32', 'Done.')} switchboard installed. Next: open a Claude Code session and type  /swb-tour`);
 }

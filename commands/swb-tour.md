@@ -50,6 +50,6 @@ Everything in Part 1 was your own bubble. This part is the actual product. Buddy
 ## Wrap (1 min)
 
 12. Both humans delete every `tour:` ticket in the Linear UI. Confirm the board is clean.
-13. Close with the three MUSTs they now have muscle memory for: **claim before you touch files · Backlog is where agents create, humans promote · done means tests passed and a PR exists.** Everything else is a team DEFAULT they'll set on planning day. Point them at PLAYBOOK.html for the rest.
+13. Close with the three MUSTs they now have muscle memory for: **claim before you touch files · Backlog is where agents create, humans promote · done means tests passed and a PR exists.** Everything else is a team DEFAULT they'll set on planning day. Then point them at the rest of the kit, by name and purpose: PLANNING-DAY.html (the question list their team answers on planning day — worth reading before the 13th), AGENTS-TEMPLATE.html (the agent contract their answers fill in), PLAYBOOK.html (reference). All in the switchboard repo folder — offer to open any of them.
 
 If the human asked for `part2` in their invocation, skip straight to Part 2 (verify doctor + an existing practice repo first).
