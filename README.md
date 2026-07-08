@@ -5,7 +5,7 @@
 1. **Join your Linear team.** Accept the workspace invite from your email, then open
    your team in Linear and confirm you're a MEMBER of it (invite accepted ≠ team
    joined — the kit half-works until you join).
-2. **Run one line** (Node ≥ 18; clone somewhere that is NOT OneDrive-synced, e.g. `C:\dev\`):
+2. **Run one line** (your Desktop is fine):
    ```sh
    git clone https://github.com/BIS-Safety-Software-Inc/switchboard.git && cd switchboard && node install.js
    ```

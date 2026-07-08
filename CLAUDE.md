@@ -31,17 +31,14 @@ and NOWHERE else — never into files, tickets, comments, or your replies.
 1. Check the environment yourself: `node --version` (need ≥ 18). Missing or too
    old? Install it for them — `winget install OpenJS.NodeJS.LTS` on Windows,
    `brew install node` on macOS — and verify. Don't send them to a website.
-2. Check this folder isn't OneDrive-synced (Desktop/Documents on a work Windows
-   machine usually is). If it is, move the clone to `C:\dev\` / `~/dev` yourself,
-   then continue from there.
-3. Run the installer with their key:
+2. Run the installer with their key:
    ```
    node install.js --key <their key>
    ```
    The **Floor Tour** opens in their browser — tell them: "read that while I
    finish; it explains the whole system." The installer registers hooks, puts
    `swb` on their PATH, installs the `/swb-tour` command, and runs `swb doctor`.
-4. **Doctor must be all green before you call this done.** Red? Fix it yourself
+3. **Doctor must be all green before you call this done.** Red? Fix it yourself
    with them watching — that IS the task. Re-run `node install.js --key ...` is
    safe (idempotent).
 
