@@ -1,0 +1,6 @@
+- **[INVISIBLE-TO-HUMAN]**: Tour told users to look for a digest block they can never see (additionalContext is agent-only) → any human-facing claim about terminal output must be verified from the HUMAN's seat; ship a visible receipt (systemMessage) when the mechanism is invisible.
+- **[VOCAB-MISMATCH]**: Kit said "Triage", Linear board says "Backlog" — first user hunted for a nonexistent group → speak the UI's vocabulary everywhere; internal names never leak to users.
+- **[EVENTUAL-CONSISTENCY]**: Linear issues(filter:) search index lags writes 17s+ → verify-after-write MUST read by ID (strongly consistent), never through the filtered search.
+- **[GATE-VS-FLAG]**: --dangerously-skip-permissions is a master switch; permission-system "ask" rules can't survive it → gates that must hold live in HOOKS (always fire), with the human yes moved into the conversation (--approved handshake).
+- **[QUOTED-PATH-BYPASS]**: Anchored command regex missed `node "/path with spaces/swb.js" claim` → \S* dies on spaces; quoted-path alternates required; the designer's own machine was the bypass case.
+- **[DUAL-DIRECTOR]**: Two paired users both running the same guided tour = two Claudes directing one scene (duplicate tickets, flipped @asks) → asymmetric roles (director/responder) + mandatory flip.
