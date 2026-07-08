@@ -43,16 +43,16 @@
 
 <div class="wrap">
 <header>
-  <p class="eyebrow">BIS AI Hackathon · Sunday July 13 · noon–5pm · tech room · NO CODE, NO COMMITS</p>
+  <p class="eyebrow">BIS AI Hackathon · Monday July 13 · noon–5pm · tech room · NO CODE, NO COMMITS</p>
   <h1>Planning Day — the question list</h1>
   <p class="lede">You know the codebase; we don't pretend to. This is the list of questions your team must ANSWER on planning day — your answers become YOUR plan and YOUR AGENTS.md. The kit is a floor for agent coordination; how you build on it is yours. Tags: <span class="tag t-must">ANSWER</span> must have a written answer before 5pm · <span class="tag t-decide">DECIDE</span> your team's call, any answer is fine — write it down · <span class="tag t-who">NAME</span> a specific person owns it.</p>
 </header>
 
-<div class="warnbox" style="border-left-color:var(--gate)"><b>Your team has a Fable 5 API budget: $100 in credits — the big gun, fired once.</b> Your everyday agents run on your own Claude plans. The Fable budget is separate API credit for <b>one big problem</b> on build day — the gnarly bug nobody can crack, the architecture decision that splits the team, a deep multi-angle review before a scary merge. At Fable's actual rates ($10/MTok in, $50/MTok out, $1 cache hits) a serious multi-hour engagement costs roughly $30–60 — so $100 buys one big problem with retry margin (realistically one to two deep engagements), and is nowhere near enough to build with all day: a full 8-dev day on Fable would run $400–800+. That gap is the point. <span class="tag t-decide">DECIDE</span> today: what CLASS of problem earns the Fable button, and <span class="tag t-who">NAME</span> who holds the key (suggest: the captain authorizes, anyone can request).</div>
+<div class="warnbox" style="border-left-color:var(--gate)"><b>The big gun: your team gets $200 in Fable 5 API credits.</b> It's for the ONE big problem of build day — the bug nobody can crack, the architecture call that splits the team, the deep review before a scary merge. Deliberately not enough to build with all day. The API key goes to your captain on the morning of July 14 to distribute. <span class="tag t-decide">DECIDE</span> today: what class of problem earns it.</div>
 
 <section>
-  <h2><span class="no">1</span>What is "agent orchestration"? (read this once — it's the new part)</h2>
-  <p>You've each worked with YOUR agent, alone. Build day is different: <b>8 people each running 1+ agents against the same branch at the same time.</b> Orchestration is everything that keeps that from becoming chaos: how work gets defined, who takes what, how agents find out what everyone else did, and what "done" means when a machine wrote most of the code.</p>
+  <h2><span class="no">1</span>Agent orchestration</h2>
+  <p>You've each worked with YOUR agents (plural), alone. Build day is different: <b>8 people each running 1+ agents against the same branch at the same time.</b> Orchestration is everything that keeps that from becoming chaos: how work gets defined, who takes what, how agents find out what everyone else did, and what "done" means when a machine wrote most of the code.</p>
   <p>The kit gives you the plumbing: agents propose tickets into Backlog, humans promote to Todo, claims lock files + create worktrees, every prompt carries a board digest to every agent, tests gate "done", humans merge. That plumbing is neutral. <b>What it can't decide is policy</b> — and policy is what goes wrong. The classic failure modes, so you know what the questions below are protecting against:</p>
   <ul>
     <li><b>Collision:</b> two agents building against the same files or the same DB tables.</li>
@@ -94,7 +94,7 @@
     <li><span class="tag t-decide">DECIDE</span>WIP limit: one claimed ticket per person at a time? (It's a norm, not code — the board makes hoarding visible; you enforce it or drop it.)</li>
     <li><span class="tag t-decide">DECIDE</span>Ticket size and template: what must a ticket contain before the sweeper promotes it (acceptance criteria, files to touch, blocked-by)? How small is a ticket — 30–90 min of agent work is the floor's suggestion.</li>
     <li><span class="tag t-decide">DECIDE</span>Subagents / goal loops / ultracode: allowed? The floor's rule is "the claim is the unit" — whatever runs inside one claim is that dev's business, subagents never write to the board. Set your token discipline (the hackathon rules already say no spawning 100 agents).</li>
-    <li><span class="tag t-must">ANSWER</span><b>Codex users MUST install the codex plugin for Claude Code</b> — <a href="https://github.com/openai/codex-plugin-cc">github.com/openai/codex-plugin-cc</a> — and run Codex through Claude Code. This is not optional: it's the only setup where the board digest reaches Codex work. Which seats on your team does this apply to, and is it installed before build day?</li>
+    <li><span class="tag t-must">ANSWER</span><b>EVERYONE installs the codex plugin for Claude Code</b> — <a href="https://github.com/openai/codex-plugin-cc">github.com/openai/codex-plugin-cc</a>. Not optional. Codex-preferring seats run Codex through it (the only setup where the board digest reaches Codex work) — and for everyone else… a second model that thinks differently makes an excellent verification subagent on work your Claude just wrote. Just a hint. Is it installed on every machine before build day?</li>
     <li><span class="tag t-must">ANSWER</span><b>You're expected to use the repo's own <code>/bis-plan</code> → <code>/bis-build</code> workflow.</b> How does it compose with the ticket cycle — e.g. claim → run /bis-plan inside the worktree → /bis-build → <code>swb done</code>? Where do its plan artifacts live, and does its commit step fit your merge cadence? Write the sequence down; two workflows nobody reconciled = every dev improvising their own.</li>
     <li><span class="tag t-must">ANSWER</span>Disclosure round: everyone skims their personal global CLAUDE.md/rules for anything touching shared code style, commits, or refactoring habits — say it out loud. Personal agent config is invisible team state.</li>
   </ul>
@@ -115,7 +115,7 @@
 <section>
   <h2><span class="no">6</span>Demo &amp; deploy questions <span class="when">also on the organizers before Friday</span></h2>
   <ul>
-    <li><span class="tag t-must">ANSWER</span><b>The 4:45 slot is a PRESENTATION more than a demo — what exactly will you show, from where?</b> Screen-share your regular dev environment? A recorded run? Slides + live board walkthrough? Decide what "showing it works" looks like and plan the 3:30 freeze → test → capture sequence around it. <span class="tag t-who">NAME</span> one person who owns the showing.</li>
+    <li><span class="tag t-must">ANSWER</span><b>The 4:45 slot is a PRESENTATION more than a demo — what exactly will you show, from where?</b> Screen-share your regular dev environment? A recorded run? Slides + live board walkthrough? Decide what "showing it works" looks like and plan the 3:30 freeze → test → capture sequence around it. <b>Your presentation is itself part of the rubric grading</b> — treat it as a deliverable, not an afterthought. <span class="tag t-who">NAME</span> one person who owns the showing.</li>
     <li><span class="tag t-must">ANSWER</span>Each team works on its own master branch in bistrainerdev — which branch, and is <code>.swb.json</code> (teamKey, testCommand, defaultBranch) committed on it?</li>
   </ul>
   <div class="openbox"><b>Organizer note (Turni):</b> the sandbox/demo environment and the laptop→dev-server path are open questions for whoever owns dev infra.</div>
@@ -126,8 +126,8 @@
   <ul>
     <li><span class="tag t-must">ANSWER</span><b>What exactly is your committed scope?</b> Written as a checklist of shippable statements ("a learner can X", "an admin sees Y") — you're judged against THIS, not the other team. Realistic-and-90%-done beats inflated-and-half-done; the cross-team critique will try to cut you, so pre-decide what you'd cut first. After today, scope changes can only be cuts.</li>
     <li><span class="tag t-decide">DECIDE</span>What's your scope-cut policy mid-day — who calls a cut at 1pm when a lane is behind, and in what order do committed items fall?</li>
-    <li><span class="tag t-must">ANSWER</span><b>The scaffolding, fully planned even though no code is allowed today:</b> exact list of what gets built first at 8:15 (schema scripts, contracts, shared components, fixtures), in what order, by whom, and the ticket bodies pre-written in Backlog TODAY so build day starts with claiming, not writing tickets.</li>
-    <li><span class="tag t-decide">DECIDE</span>Presentation prep during the day, not at 4:00: the rubric's 20% lessons-learned line requires you to explain what your agents actually did — judges will pick a commit and ask. Who's capturing the roadblock/adaptation story AS IT HAPPENS, and which technique are you documenting as the "thing the org didn't know before"?</li>
+    <li><span class="tag t-must">ANSWER</span><b>The scaffolding, fully planned — planning is allowed on planning day (code isn't):</b> exact list of what gets built first at 8:15 (schema scripts, contracts, shared components, fixtures), in what order, by whom, and the ticket bodies pre-written in Backlog TODAY so build day starts with claiming, not writing tickets.</li>
+    <li><span class="tag t-decide">DECIDE</span>Presentation prep during the day, not at 4:00: the rubric's 20% lessons-learned line requires you to explain what your agents actually did. Who's capturing the roadblock/adaptation story AS IT HAPPENS, and which technique are you documenting as the "thing the org didn't know before"?</li>
     <li><span class="tag t-decide">DECIDE</span>Fallback drill: if the kit, Linear, or the network misbehaves at 10am, what's your degraded mode (the manual recipes + the board in the browser)? One sentence, agreed now, so nobody freezes.</li>
   </ul>
 </section>
@@ -136,11 +136,11 @@
   <h2><span class="no">6c</span>Rosters <span class="when">for reference — teams nominate their own captain</span></h2>
   <div class="tablewrap"><table>
     <tr><th>Team 1</th><th>Team 2</th></tr>
-    <tr><td>Sree</td><td>Rejith <span style="color:var(--muted)">(suggested captain)</span></td></tr>
+    <tr><td>Sree</td><td>Rejith <span style="color:var(--muted)">(captain)</span></td></tr>
     <tr><td>Jon</td><td>Sabareesh</td></tr>
     <tr><td>Aly</td><td>Raj</td></tr>
-    <tr><td>Dani</td><td>Patrick</td></tr>
-    <tr><td>Aymeric <span style="color:var(--muted)">(suggested captain)</span></td><td>Udayan</td></tr>
+    <tr><td>Dani</td><td>Patrick <span style="color:var(--muted)">(PM)</span></td></tr>
+    <tr><td>Aymeric <span style="color:var(--muted)">(captain)</span></td><td>Udayan</td></tr>
     <tr><td>Mahi <span style="color:var(--muted)">(design/PM)</span></td><td>Mika <span style="color:var(--muted)">(PM/design)</span></td></tr>
     <tr><td>Preeti <span style="color:var(--muted)">(QA)</span></td><td>John D <span style="color:var(--muted)">(QA)</span></td></tr>
     <tr><td></td><td>Chai <span style="color:var(--muted)">(QA)</span></td></tr>
@@ -148,7 +148,7 @@
 </section>
 
 <section>
-  <h2><span class="no">7</span>Leaving the room — the 5pm deliverables <span class="when">per the hackathon rules</span></h2>
+  <h2><span class="no">7</span>Leaving the room — the 5pm deliverables on planning day</h2>
   <div class="tablewrap"><table>
     <tr><th>Deliverable (due 5:00pm)</th><th>Built from</th></tr>
     <tr><td>Requirements gap list — resolved with product</td><td>Case deep-dive</td></tr>
