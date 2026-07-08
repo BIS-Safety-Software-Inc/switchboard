@@ -58,7 +58,7 @@ uninstall steps are in **[INSTALL.md](./INSTALL.md)**.
 3. **Cache + per-session cursor** live under `~/.switchboard/`; each session only sees what changed since *its* last look.
 4. **Write — one CLI, one file.** All Linear mutations go through idempotent `swb` verbs (`claim`, `ask`, `done`, `discover`, `new`, `release`) — never raw API calls.
 5. **Every write is signed** `🤖 Claude — via <human> · swb v1.0.0`; the human is always the assignee.
-6. **Gates are structural:** `swb new` lands in Triage (human promotes to Ready); `swb done` refuses without green tests + a PR (human merges to Done).
+6. **Gates are structural:** `swb new` lands in Backlog (a human promotes to Todo); `swb done` refuses without green tests + a PR (a human merges to Done).
 7. **Guard — two layers:** a git worktree per claimed ticket, plus a `PreToolUse` hook that *warns* (never blocks) when you edit a file another ticket has claimed.
 8. **Three hooks:** `UserPromptSubmit` (digest every prompt), `PostToolUse` (mid-run injection, throttled ≥5 min), `PreToolUse` (ownership guard on Edit/Write/MultiEdit).
 9. **Fails open:** any verb that errors prints a numbered `MANUAL RECIPE:` a human can follow by hand — nobody is ever blocked on the tool.
