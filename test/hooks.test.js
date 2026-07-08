@@ -492,3 +492,29 @@ test('posttooluse: mid-turn delivery carries the yellow receipt too', () => {
     assert.ok(parsed.hookSpecificOutput.additionalContext.includes('@you'), 'agent still gets the full digest');
   } finally { cleanup(home); }
 });
+
+// Regression (live, 2026-07-08, two-machine tour): ownership.json is per-machine,
+// so a TEAMMATE's claim (made on their laptop) produced no warning here. The
+// guard must also read claims reconstructed from the board cache.
+test('pretooluse: warns for a teammate\'s claim known only via the board cache', () => {
+  const cache = freshCache();
+  // sarah's claim comment as swb posts it (HAC-23 is In Progress, assignee
+  // sarah, in the fixture) — but ownership.json is EMPTY, exactly like a
+  // second machine that never ran sarah's claim locally.
+  cache.comments.push({
+    issueKey: 'HAC-23', author: 'sarah', discovery: false,
+    createdAt: '2026-07-06T14:15:00.000Z',
+    body: 'Claimed HAC-23. Files: src/schema/**,db/migrations/*.sql\n\n🤖 Claude — via sarah · swb v1.0.0',
+  });
+  const home = makeHome({ cache, ownership: {} });
+  try {
+    const stdin = { session_id: 'sess-marc-1', cwd: process.cwd(), tool_name: 'Edit',
+      tool_input: { file_path: 'src/schema/quiz.js' } };
+    const r = runHook(HOOKS.pre, stdin, home);
+    assert.strictEqual(r.status, 0);
+    assert.ok(r.out.length > 0, 'warned despite empty local ownership: ' + r.err);
+    const parsed = JSON.parse(r.out);
+    assert.match(parsed.systemMessage, /HAC-23/, 'names the ticket');
+    assert.match(parsed.systemMessage, /sarah/, 'names the owner');
+  } finally { cleanup(home); }
+});

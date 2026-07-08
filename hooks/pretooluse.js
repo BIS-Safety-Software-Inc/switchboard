@@ -123,6 +123,44 @@ function candidatePaths(filePath, cwd) {
   return Array.from(out);
 }
 
+// Cross-MACHINE ownership: ownership.json is local to each laptop, so it only
+// knows claims made HERE. Other people's claims travel as signed board comments
+// ("Claimed HAC-305. Files: src/turni/**") which every machine's cache already
+// holds. Parse them for In Progress issues assigned to someone else — that is
+// the cross-person guard (live finding: the guard was silent for a teammate's
+// claim because only the local file was consulted).
+function cachePath() { return path.join(swbHome(), 'cache.json'); }
+function remoteOwnership() {
+  const cache = readJsonSafe(cachePath());
+  if (!cache) return {};
+  const meTokens = [];
+  const v = cache.viewer;
+  if (v && typeof v === 'object') {
+    if (v.displayName) meTokens.push(String(v.displayName).trim().toLowerCase());
+    if (v.name) meTokens.push(String(v.name).trim().toLowerCase());
+  }
+  const inProgress = new Map();
+  for (const iss of cache.issues || []) {
+    if (!iss || iss.state !== 'In Progress' || !iss.assignee) continue;
+    if (meTokens.includes(String(iss.assignee).trim().toLowerCase())) continue; // my own
+    inProgress.set(iss.key, iss.assignee);
+  }
+  const out = {};
+  for (const c of cache.comments || []) {
+    if (!c || !inProgress.has(c.issueKey)) continue;
+    const m = /^Claimed (\S+)(?: \(human-approved\))?\. Files: (.+)$/m.exec(String(c.body || ''));
+    if (!m || m[1] !== c.issueKey) continue;
+    const globs = m[2].trim();
+    if (!globs || globs.startsWith('(none')) continue;
+    out[c.issueKey] = {
+      files: globs.split(',').map((x) => x.trim()).filter(Boolean),
+      assignee: inProgress.get(c.issueKey),
+      remote: true,
+    };
+  }
+  return out;
+}
+
 // Find the first ownership entry (by another session/assignee) that owns file.
 function findForeignOwner(ownership, filePath, cwd, mySession, myAssignee) {
   if (!ownership || typeof ownership !== 'object') return null;
@@ -190,7 +228,10 @@ function main() {
     }
 
     if (WATCHED_TOOLS.has(toolName) && filePath) {
-      const ownership = readJsonSafe(ownershipPath());
+      // Local claims first (authoritative for this machine), then teammates'
+      // claims reconstructed from the board cache — cross-machine coverage.
+      const localOwn = readJsonSafe(ownershipPath()) || {};
+      const ownership = Object.assign({}, remoteOwnership(), localOwn);
       const owner = findForeignOwner(ownership, filePath, cwd, sessionId, myAssignee);
       if (owner) {
         const display = normSep(filePath);
