@@ -11,6 +11,8 @@
    ```
    The Floor Tour opens in your browser — read it while the installer works. It will
    ask for your personal Linear API key and shows you exactly where to get one.
+   *Prefer being guided? After cloning, just open Claude Code inside the folder and
+   say "set me up" — it reads this repo's CLAUDE.md and walks you through everything.*
 3. **Open Claude Code and type `/swb-tour`.** Your own Claude walks you through the
    real thing on a practice ticket (~10 min), then tells you to grab a teammate for
    Part 2 — **setup isn't done until you've run Part 2 with a buddy.**
