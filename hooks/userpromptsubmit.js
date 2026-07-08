@@ -151,6 +151,29 @@ function hhmm(d) {
   return `${h}:${m}`;
 }
 function tsMs(v) { const n = Date.parse(v); return Number.isFinite(n) ? n : 0; }
+
+// Solid yellow box for the HUMAN-visible receipt. Wrap to a fixed width and pad
+// every row to it — padding to the longest raw line let 300-char @you lines
+// wrap mid-paint into stripes. SHARED by both delivery doors (prompt-time and
+// mid-turn): a digest the human cannot see must not exist (live finding — the
+// mid-turn door once had no receipt at all).
+const BOX_W = 88;
+function paintBox(head, text) {
+  const wrap = (l) => {
+    const rows = [];
+    let rest = l;
+    while (rest.length > BOX_W) {
+      let cut = rest.lastIndexOf(' ', BOX_W);
+      if (cut < BOX_W - 20) cut = BOX_W;
+      rows.push(rest.slice(0, cut));
+      rest = '       ' + rest.slice(cut).trimStart();
+    }
+    rows.push(rest);
+    return rows;
+  };
+  const blockLines = [head, ...text.split('\n').filter((l) => l.trim())].flatMap(wrap);
+  return blockLines.map((l) => `\u001b[103;30m ${l.padEnd(BOX_W)} \u001b[0m`).join('\n');
+}
 function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function firstWord(s) { return String(s == null ? '' : s).trim().split(/\s+/)[0] || ''; }
 
@@ -465,23 +488,8 @@ async function main() {
       // row to that same width. Padding to the longest raw line let 300-char
       // @you lines exceed the terminal width — each row wrapped mid-paint and
       // the block rendered as broken yellow stripes (first-user report).
-      const BOX_W = 88;
-      const wrap = (l) => {
-        const rows = [];
-        let rest = l;
-        while (rest.length > BOX_W) {
-          let cut = rest.lastIndexOf(' ', BOX_W);
-          if (cut < BOX_W - 20) cut = BOX_W; // no nearby space → hard break
-          rows.push(rest.slice(0, cut));
-          rest = '       ' + rest.slice(cut).trimStart(); // continuation indent
-        }
-        rows.push(rest);
-        return rows;
-      };
-      const blockLines = [head, ...text.split('\n').filter((l) => l.trim())].flatMap(wrap);
-      const paint = (l) => `\u001b[103;30m ${l.padEnd(BOX_W)} \u001b[0m`;
       process.stdout.write(JSON.stringify({
-        systemMessage: blockLines.map(paint).join('\n'),
+        systemMessage: paintBox(head, text),
         hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text },
       }));
     }
@@ -515,5 +523,5 @@ module.exports = {
   buildItems, renderDigest, computeDigestInline, computeDigest,
   digestLooksWellFormed, advanceCursor,
   readJsonSafe, cachePath, cursorPath, ownershipPath, eventsPath, swbHome,
-  sanitizeId, tsMs, viewerName, viewerHandleTokens,
+  sanitizeId, tsMs, viewerName, viewerHandleTokens, paintBox,
 };

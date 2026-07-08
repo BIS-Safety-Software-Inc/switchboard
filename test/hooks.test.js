@@ -471,3 +471,24 @@ test('pretooluse gate2: denies swb claim without --approved, allows with it, res
     assert.strictEqual(r.out.trim(), '', 'gate2 off → no deny');
   } finally { cleanup(home); try { fs.rmSync(repoDir, { recursive: true, force: true }); } catch (_) {} }
 });
+
+// Regression (live, 2026-07-08): the mid-turn door delivered digests with NO
+// human-visible receipt — agent informed, cursor advanced, human saw nothing.
+test('posttooluse: mid-turn delivery carries the yellow receipt too', () => {
+  const home = makeHome({
+    cache: freshCache(),
+    ownership: readFixture('ownership.json'),
+    cursors: { 'sess-marc-1': readFixture('cursor-old.json') }, // stale lastInjectTs → not throttled
+  });
+  try {
+    const stdin = { session_id: 'sess-marc-1', cwd: process.cwd(), tool_name: 'Bash', tool_input: { command: 'echo hi' } };
+    const r = runHook(HOOKS.ptu, stdin, home);
+    assert.strictEqual(r.status, 0);
+    assert.ok(r.out.length > 0, 'delivered (non-empty delta, not throttled)');
+    const parsed = JSON.parse(r.out);
+    assert.ok(parsed.systemMessage, 'mid-turn delivery has a human-visible receipt');
+    assert.ok(parsed.systemMessage.includes('\u001b[103;30m'), 'painted yellow');
+    assert.match(parsed.systemMessage.replace(/\u001b\[[0-9;]*m/g, ''), /switchboard \(mid-turn\): \d+ board update/);
+    assert.ok(parsed.hookSpecificOutput.additionalContext.includes('@you'), 'agent still gets the full digest');
+  } finally { cleanup(home); }
+});

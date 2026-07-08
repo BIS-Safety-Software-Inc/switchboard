@@ -83,6 +83,7 @@ function main() {
     sessionId = input.session_id || input.sessionId || 'unknown';
     const cwd = input.cwd || process.cwd();
 
+    let deliveredDigest;
     // Throttle gate: skip entirely if we injected < 300s ago.
     const cursor = readJsonSafe(cursorPath(sessionId)) || {};
     const lastInject = tsMs(cursor.lastInjectTs);
@@ -92,9 +93,18 @@ function main() {
       // Same unified digest source as UserPromptSubmit — the two hooks never diverge.
       const r = engine.computeDigest(sessionId, cwd);
       if (r.hasItems && r.text && r.text.trim()) {
-        process.stdout.write(JSON.stringify({
-          hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: r.text },
-        }));
+        // Mid-turn deliveries get the SAME yellow box as prompt-time ones. This
+        // door once delivered silently: the agent got the digest, the cursor
+        // advanced, and the human saw nothing — "why didn't I see yellow?"
+        const itemLines = r.text.split('\n').filter((l) => /^(@you|claim|state|disc|new)\s/.test(l));
+        const count = itemLines.length || 1;
+        const head = `switchboard (mid-turn): ${count} board update${count === 1 ? '' : 's'}`;
+        const paint = engine && typeof engine.paintBox === 'function' ? engine.paintBox : null;
+        process.stdout.write(JSON.stringify(Object.assign(
+          paint ? { systemMessage: paint(head, r.text) } : {},
+          { hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: r.text } }
+        )));
+        deliveredDigest = r.text;
         // advance lastSeenTs when WE own the items (inline path); then stamp
         // lastInjectTs so the 300s throttle window opens.
         if (!r.viaSwb && Array.isArray(r.items) && typeof engine.advanceCursor === 'function') {
@@ -112,6 +122,7 @@ function main() {
     logEvent({
       ts: new Date().toISOString(), cmd: 'hook:posttooluse',
       args: { throttled: !!throttled }, sessionId, ok: true, ms: Date.now() - start,
+      digest: deliveredDigest, // feeds `swb last` — mid-turn deliveries are replayable too
     });
   } catch (err) {
     logEvent({
