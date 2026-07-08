@@ -23,6 +23,19 @@ The human speaks English. **You speak `swb`.** Every board write goes through an
 
 ## MUSTs (non-negotiable — this is the coordination floor)
 
+- **No drive-by refactors.** No changes outside your ticket's declared files —
+  however ugly the neighboring code. Cleanup is its own ticket, proposed in
+  Backlog like everything else. Agent-cheap refactoring produces unreviewable
+  2,000-line diffs; the reviewer's time is the scarce resource, not yours.
+- **Compose with the repo's own CLAUDE.md.** bistrainerdev's hard stops,
+  /bis-plan → /bis-build workflow, design-system rules, and dev-DB read-only
+  policy all still bind. This file adds the TEAM coordination layer on top;
+  where they conflict, the repo hard-stop wins.
+- **Use the knowledge tools before guessing at CFML.** The codegraph MCP and
+  the BIS knowledge base (bis-knowledgebase/ + ask-BIS) answer codebase facts;
+  LLM training data on ColdFusion is thin, so VERIFY idioms against real files
+  (your team's anchor files below) instead of inventing them.
+
 - **Gate 2 is built into the kit and survives skip-permissions.** `swb claim` and
   `swb done` are DENIED by a hook unless the command carries `--approved`. When
   you hit the denial: ask your human in the conversation, get their explicit
@@ -181,3 +194,16 @@ _Fill in below. These are yours to set; changing them does not break the floor._
   touch, blocked-by links. (The PM applies this when promoting Backlog → Ready.)
 - **Merge cadence & review policy:** per-ticket vs checkpoint; who reviews at
   `done`.
+
+## Team fills in on planning day (from PLANNING-DAY.html)
+
+- Team branch (also `.swb.json` defaultBranch): ______
+- testCommand (the done-gate — Section B decision): ______
+- Gate 2: on (default) / off: ______
+- WIP limit: ______
+- Backlog sweeper (name + cadence): ______
+- DB-script owner (schema changes serialized through them): ______
+- Deploy owner: ______
+- God-file lanes (serialized — one ticket at a time): ______
+- Anchor files per module ("write CFML like this file"): ______
+- Review pairs (QA coordinates): ______

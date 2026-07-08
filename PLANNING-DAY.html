@@ -1,0 +1,128 @@
+<title>Planning Day — July 13 Working Checklist</title>
+<style>
+  :root {
+    --ground:#fafafc; --panel:#f1f1f7; --ink:#1d1f2e; --muted:#63667e; --line:#e2e3ee;
+    --accent:#4f58c4; --accent-soft:#e9eafb; --ok:#24855b; --ok-soft:#e3f3ec;
+    --warn:#b06a1d; --warn-soft:#faf0e0; --bad:#b3383d; --bad-soft:#f9e8e9; --gate:#7a3ba6;
+  }
+  @media (prefers-color-scheme: dark) { :root {
+    --ground:#15161d; --panel:#1d1e28; --ink:#e6e7f2; --muted:#9295ad; --line:#2b2d3c;
+    --accent:#939af0; --accent-soft:#262848; --ok:#4cba8a; --ok-soft:#1c2f27;
+    --warn:#d9964a; --warn-soft:#2f2618; --bad:#e07b80; --bad-soft:#331d1e; --gate:#b98add;
+  } }
+  :root[data-theme="light"] { --ground:#fafafc; --panel:#f1f1f7; --ink:#1d1f2e; --muted:#63667e; --line:#e2e3ee; --accent:#4f58c4; --accent-soft:#e9eafb; --ok:#24855b; --ok-soft:#e3f3ec; --warn:#b06a1d; --warn-soft:#faf0e0; --bad:#b3383d; --bad-soft:#f9e8e9; --gate:#7a3ba6; }
+  :root[data-theme="dark"] { --ground:#15161d; --panel:#1d1e28; --ink:#e6e7f2; --muted:#9295ad; --line:#2b2d3c; --accent:#939af0; --accent-soft:#262848; --ok:#4cba8a; --ok-soft:#1c2f27; --warn:#d9964a; --warn-soft:#2f2618; --bad:#e07b80; --bad-soft:#331d1e; --gate:#b98add; }
+  body { background:var(--ground); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.55; margin:0; }
+  .wrap { max-width:52rem; margin:0 auto; padding:2.5rem 1.25rem 5rem; }
+  h1,h2,h3,code,th,.tag { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  header { border-bottom:2px solid var(--ink); padding-bottom:1.2rem; margin-bottom:1.8rem; }
+  .eyebrow { font-family:ui-monospace,Menlo,monospace; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 .5rem; }
+  h1 { font-size:clamp(1.5rem,4vw,2rem); margin:0 0 .4rem; letter-spacing:-.02em; }
+  .lede { color:var(--muted); margin:0; max-width:46rem; }
+  section { margin:2.2rem 0; }
+  h2 { font-size:1rem; border-bottom:1px solid var(--line); padding-bottom:.4rem; margin:0 0 .9rem; }
+  h2 .no { color:var(--accent); margin-right:.5rem; }
+  h2 .when { float:right; font-size:.68rem; color:var(--muted); font-weight:400; }
+  p,li { max-width:70ch; }
+  ul,ol { padding-left:1.3rem; }
+  li { margin-bottom:.45rem; }
+  code { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:.05em .3em; font-size:.85em; }
+  .tag { display:inline-block; border-radius:5px; font-size:.64rem; font-weight:800; padding:.08rem .45rem; margin-right:.35rem; vertical-align:middle; }
+  .t-must { border:2px solid var(--bad); color:var(--bad); }
+  .t-decide { border:2px solid var(--ok); color:var(--ok); }
+  .t-who { border:2px solid var(--gate); color:var(--gate); }
+  .note { background:var(--accent-soft); border-left:3px solid var(--accent); padding:.65rem 1rem; margin:.8rem 0; max-width:64ch; }
+  .warnbox { background:var(--warn-soft); border-left:3px solid var(--warn); padding:.65rem 1rem; margin:.8rem 0; max-width:64ch; }
+  .openbox { background:var(--bad-soft); border-left:3px solid var(--bad); padding:.65rem 1rem; margin:.8rem 0; max-width:64ch; }
+  .tablewrap { overflow-x:auto; margin:.7rem 0; }
+  table { border-collapse:collapse; width:100%; font-size:.84rem; }
+  th { text-align:left; font-size:.66rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); border-bottom:2px solid var(--ink); padding:.4rem .7rem .3rem 0; }
+  td { border-bottom:1px solid var(--line); padding:.45rem .7rem .45rem 0; vertical-align:top; }
+  footer { border-top:1px solid var(--line); margin-top:3rem; padding-top:.9rem; font-size:.75rem; color:var(--muted); }
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">BIS AI Hackathon · Sunday July 13 · noon–5pm · tech room · NO CODE, NO COMMITS</p>
+  <h1>Planning Day — the working checklist</h1>
+  <p class="lede">Everything your team must decide before build day, beyond the feature itself. Leave at 5pm with every <b>DECIDE</b> answered in writing, every <b>WHO</b> a named person, and your committed scope locked. Build day runs on these answers.</p>
+</header>
+
+<section>
+  <h2><span class="no">A</span>The codebase plan <span class="when">fits the 1:30–2:30 work-breakdown block</span></h2>
+  <ul>
+    <li><span class="tag t-must">MUST</span><b>Map the god-files and make them lanes.</b> Legacy CF routes a lot through shared monsters (<code>engine.cfm</code> variants, <code>Application.cfc</code>, shared components). List the ones your feature touches; each becomes a SERIALIZED lane — one ticket at a time, one owner. Parallel agents editing the same 5,000-line file is the #1 merge disaster.</li>
+    <li><span class="tag t-must">MUST</span><b>Serialize database changes.</b> Agents are read-only on the dev DB (repo rule — SELECT only). Schema changes are written as scripts in <code>db_scripts/</code> and a HUMAN applies them. Name who applies them and batch when — two tickets altering the same tables collide invisibly to git. <span class="tag t-who">WHO</span> one DB-script owner per team.</li>
+    <li><span class="tag t-decide">DECIDE</span><b>Scaffolding-first sequencing:</b> what must exist (schema, contracts, shared components, fixtures) before parallel lanes branch? Who builds it first thing at 8:15?</li>
+    <li><span class="tag t-must">MUST</span><b>Exit criterion:</b> every person leaves planning day with ≥1 claimable Todo ticket that does NOT depend on scaffolding (contracts, fixtures, test harness, seed data all count).</li>
+    <li><span class="tag t-decide">DECIDE</span><b>Frontend/backend split:</b> React app work (v1/views — builds and tests locally per worktree) vs CFML work (verifiable only against the dev environment). Weight assignments accordingly — frontend lanes parallelize safely, CFML lanes need the merge-to-verify loop.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">B</span>The verification plan <span class="when">decide BEFORE the day ends — the done-gate depends on it</span></h2>
+  <div class="warnbox"><b>The single most important decision of planning day:</b> what is your team's <code>testCommand</code>? <code>swb done</code> refuses to finish a ticket unless this command passes. If you don't define a real one, your done-gate is theater and the rubric's 15% automated-testing line is lost. There is no TestBox harness in the repo today.</div>
+  <ul>
+    <li><span class="tag t-decide">DECIDE</span>Options, honestly ranked: (1) frontend — the v1/views build/lint/jest commands are real gates and exist today; (2) CFML — a smoke script (curl key endpoints on the dev instance, grep for errors) is a legitimate gate QA can own; (3) TestBox if someone gets it standing during planning — don't bet the day on it.</li>
+    <li><span class="tag t-who">WHO</span><b>QA owns the test strategy</b>: writes the TDD cases on planning day (per the hackathon rules), owns the smoke script, and hands failing tests to devs as the ticket acceptance criteria.</li>
+    <li><span class="tag t-decide">DECIDE</span>How is a CFML change verified before merge? (The repo's <code>/bis-build</code> self-test flow + dev-instance checking is the existing answer — confirm it works from a worktree.)</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">C</span>Agent orchestration <span class="when">fits the 2:30–3:30 block · these produce your AGENTS.md</span></h2>
+  <ul>
+    <li><span class="tag t-must">MUST</span><b>Compose, don't replace.</b> bistrainerdev already has a binding CLAUDE.md (hard stops, <code>/bis-plan</code>→<code>/bis-build</code>, design-system rules, dev-DB read-only). Your hackathon AGENTS.md section is APPENDED to that — Switchboard protocol + team decisions. If a hackathon rule conflicts with a repo hard-stop, the hard-stop wins.</li>
+    <li><span class="tag t-must">MUST</span><b>Wire the knowledge tools:</b> every agent seat gets the codegraph MCP and the BIS knowledge base (<code>bis-knowledgebase/</code> + ask-BIS). These are the antidote to LLMs being weaker at CFML — agents verify against the graph and the KB instead of hallucinating CFML idioms. Also pin in AGENTS.md: Adobe CF 2023, FW/1, house idiom, and 2–3 anchor files per module ("write like this file").</li>
+    <li><span class="tag t-decide">DECIDE</span><b>Gate 2:</b> keep the built-in ask-in-chat doorman on claims/dones (default), or <code>"gate2": "off"</code> for autonomous claiming?</li>
+    <li><span class="tag t-decide">DECIDE</span><b>WIP limit:</b> one claim per person at a time — keep, change, or drop?</li>
+    <li><span class="tag t-who">WHO</span><b>Backlog sweeper</b> (the Gate 1 owner): named person + cadence (suggest :00 and :30). Agents propose; this person promotes what's real, kills junk, and can assign at promote time — which is also your counterweight to proposer bias.</li>
+    <li><span class="tag t-decide">DECIDE</span><b>Proposer bias policy:</b> does the sweeper assign tickets to spread context, or laissez-faire (proposer claims their own)?</li>
+    <li><span class="tag t-decide">DECIDE</span><b>Ticket template for promotion:</b> what must a ticket contain before the sweeper promotes it (acceptance criteria, files to touch, blocked-by)?</li>
+    <li><span class="tag t-must">MUST</span><b>Disclosure round:</b> everyone skims their personal global CLAUDE.md / rules for anything that touches shared code style, commits, or refactoring habits — say it out loud. Personal agent config is invisible team state.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">D</span>Merge &amp; branches <span class="when">captain's domain</span></h2>
+  <ul>
+    <li><span class="tag t-must">MUST</span>Each team works on its own master branch in <code>bistrainerdev</code>; per-ticket worktrees branch off it and merge back per-ticket (small, continuous), not end-of-day. Set <code>.swb.json</code> <code>defaultBranch</code> to your team branch.</li>
+    <li><span class="tag t-who">WHO</span><b>The AI captain owns merge discipline:</b> nag per-ticket merges, run the mandatory noon checkpoint, the ~2:30 informal merge, and the 3:30 freeze. Solo-dev habit is "merge when finished" — at agent speed that is fatal; the captain's most valuable sentence all day is "merge now."</li>
+    <li><span class="tag t-must">MUST</span><b>Humans eyeball every merge-conflict resolution.</b> Agents resolve conflicts confidently and wrongly, especially in CFML. A conflict an agent resolved is a diff a human reads before it merges.</li>
+    <li><span class="tag t-must">MUST</span>Clone location: <code>C:\dev\</code> (or equivalent) — never inside OneDrive-synced folders (Desktop/Documents). Worktrees + agent-speed file churn + OneDrive = lock chaos.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">E</span>Reviews &amp; the Q&amp;A culture <span class="when">QA's domain</span></h2>
+  <ul>
+    <li><span class="tag t-who">WHO</span><b>QA coordinates Gate 3:</b> assigns review pairs (A reviews B, B reviews C…), watches the In Review column for pile-ups, and enforces "reviewed means a human read the diff" — not a rubber stamp on agent output.</li>
+    <li><span class="tag t-who">WHO</span><b>QA stewards the ask-culture:</b> solo devs default to letting their agent guess instead of asking. QA's job during the day: when they see a guess shipped ("assumed the schema"), route it back — "that should have been a <code>swb ask</code>." One enforced ask beats a wrong assumption merged.</li>
+    <li><span class="tag t-must">MUST</span><b>No drive-by refactors:</b> no changes outside your ticket's declared files, however ugly the spaghetti. Agents make refactoring cheap; 2,000-line "cleanup" diffs are unreviewable. (This rule ships in the AGENTS template.)</li>
+    <li><span class="tag t-must">MUST</span><b>No secrets on the board:</b> DSN strings, passwords, config values never go into Linear tickets or comments. Legacy CF has hardcoded credentials; the board is the most-read surface in the system.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">F</span>Demo &amp; deploy <span class="when">OPEN — organizers must answer before the 13th</span></h2>
+  <div class="openbox"><b>Unresolved:</b> the day-2 agenda says "deploy to team sandbox" at the 3:30 freeze — <b>no sandbox exists yet.</b> The repo has no local-run story for the CF backend (no CommandBox/Docker; Adobe CF 2023 + IIS + shared dev DB), so "where does the demo run?" needs an owner. Options: (a) two dev-server sites, one per team branch; (b) each team demos from the shared dev environment switched to their branch (serialize the two demos); (c) frontend demos run local builds against the shared dev backend. Decide with whoever owns dev infra — before Friday's prep meeting, so planning day can assume the answer.</div>
+  <ul>
+    <li><span class="tag t-who">WHO</span>One named deploy owner per team — whatever the sandbox answer is, one person runs the 3:30 freeze → test → deploy sequence.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">G</span>End-of-day deliverables <span class="when">due 5:00pm, per the hackathon rules</span></h2>
+  <div class="tablewrap"><table>
+    <tr><th>Deliverable</th><th>Where the answers come from</th></tr>
+    <tr><td>Requirements gap list — resolved with product</td><td>Case deep-dive block</td></tr>
+    <tr><td>Work breakdown + dependency map (incl. god-file lanes, DB-script lane)</td><td>Section A</td></tr>
+    <tr><td>AGENTS.md orchestration plan (appended to repo CLAUDE.md)</td><td>Sections C–E decisions, on the Switchboard template</td></tr>
+    <tr><td>Committed scope statement (judged against this — cuts only after today)</td><td>Cross-team critique + scope lock</td></tr>
+    <tr><td>Testing strategy — QA's TDD cases + the team <code>testCommand</code></td><td>Section B</td></tr>
+  </table></div>
+  <p class="note"><b>The one-sentence test for leaving the room:</b> every DECIDE has a written answer, every WHO is a person's name, every MUST is acknowledged by the whole team — and tomorrow at 8:15 every person can claim a ticket without asking anyone what to do.</p>
+</section>
+
+<footer>Planning-day checklist · BIS AI Hackathon July 13–14 · companion to FLOOR-TOUR.html (how the kit works) and PLAYBOOK.html (reference) · switchboard repo</footer>
+</div>
