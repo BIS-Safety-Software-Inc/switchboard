@@ -11,7 +11,8 @@
 
 ## You are one of many parallel sessions
 
-Sixteen developers are driving agents against **one shared Linear board**. You
+Seven to eight developers on YOUR team are driving agents against **your team's
+Linear board** (one board per team — the other team has its own). You
 coordinate through the board, not by guessing. Your job: build your claimed
 ticket without colliding with anyone else's work, and surface anything the rest
 of the team needs to know.

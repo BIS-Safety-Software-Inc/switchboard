@@ -1,0 +1,125 @@
+<title>AGENTS.md template — color-coded</title>
+<style>
+  :root { --ground:#fafafc; --panel:#f1f1f7; --ink:#1d1f2e; --muted:#63667e; --line:#e2e3ee;
+    --accent:#4f58c4; --accent-soft:#e9eafb; --must:#b3383d; --must-soft:#f9e8e9;
+    --choice:#24855b; --choice-soft:#e3f3ec; --code-bg:#23242f; --code-ink:#d8daea; }
+  @media (prefers-color-scheme: dark) { :root { --ground:#15161d; --panel:#1d1e28; --ink:#e6e7f2;
+    --muted:#9295ad; --line:#2b2d3c; --accent:#939af0; --accent-soft:#262848;
+    --must:#e07b80; --must-soft:#331d1e; --choice:#4cba8a; --choice-soft:#1c2f27;
+    --code-bg:#0f1016; --code-ink:#d8daea; } }
+  :root[data-theme="light"] { --ground:#fafafc; --panel:#f1f1f7; --ink:#1d1f2e; --muted:#63667e; --line:#e2e3ee; --accent:#4f58c4; --accent-soft:#e9eafb; --must:#b3383d; --must-soft:#f9e8e9; --choice:#24855b; --choice-soft:#e3f3ec; --code-bg:#23242f; --code-ink:#d8daea; }
+  :root[data-theme="dark"] { --ground:#15161d; --panel:#1d1e28; --ink:#e6e7f2; --muted:#9295ad; --line:#2b2d3c; --accent:#939af0; --accent-soft:#262848; --must:#e07b80; --must-soft:#331d1e; --choice:#4cba8a; --choice-soft:#1c2f27; --code-bg:#0f1016; --code-ink:#d8daea; }
+  body { background:var(--ground); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.55; margin:0; }
+  .wrap { max-width:52rem; margin:0 auto; padding:2.5rem 1.25rem 5rem; }
+  h1,h2,code,th,.tag { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  header { border-bottom:2px solid var(--ink); padding-bottom:1.1rem; margin-bottom:1.6rem; }
+  .eyebrow { font-family:ui-monospace,Menlo,monospace; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 .5rem; }
+  h1 { font-size:clamp(1.4rem,4vw,1.9rem); margin:0 0 .4rem; letter-spacing:-.02em; }
+  .lede { color:var(--muted); margin:0; max-width:46rem; }
+  .legend { display:flex; flex-wrap:wrap; gap:.8rem; margin-top:.8rem; font-size:.78rem; }
+  h2 { font-size:.98rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; margin:2rem 0 .8rem; }
+  p,li { max-width:70ch; }
+  ol,ul { padding-left:1.3rem; } li { margin-bottom:.5rem; }
+  code { background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:.05em .3em; font-size:.85em; }
+  .tag { display:inline-block; border-radius:5px; font-size:.62rem; font-weight:800; padding:.06rem .4rem; margin-right:.35rem; vertical-align:middle; }
+  .tag.m { border:2px solid var(--must); color:var(--must); }
+  .tag.c { border:2px solid var(--choice); color:var(--choice); }
+  .must-block { background:var(--must-soft); border-left:4px solid var(--must); padding:.7rem 1rem; margin:.7rem 0; }
+  .choice-block { background:var(--choice-soft); border-left:4px solid var(--choice); padding:.7rem 1rem; margin:.7rem 0; }
+  .info { background:var(--accent-soft); border-left:4px solid var(--accent); padding:.7rem 1rem; margin:.7rem 0; max-width:64ch; }
+  .must-block li::marker { color:var(--must); font-weight:800; }
+  .term { background:var(--code-bg); color:var(--code-ink); border-radius:8px; padding:.7rem .9rem; overflow-x:auto; font-family:ui-monospace,Menlo,monospace; font-size:.75rem; line-height:1.6; margin:.6rem 0; }
+  .tablewrap { overflow-x:auto; margin:.7rem 0; }
+  table { border-collapse:collapse; width:100%; font-size:.82rem; }
+  th { text-align:left; font-size:.66rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); border-bottom:2px solid var(--ink); padding:.4rem .7rem .3rem 0; }
+  td { border-bottom:1px solid var(--line); padding:.45rem .7rem .45rem 0; vertical-align:top; }
+  .blank { border-bottom:1.5px solid var(--choice); display:inline-block; min-width:10rem; }
+  footer { border-top:1px solid var(--line); margin-top:3rem; padding-top:.9rem; font-size:.75rem; color:var(--muted); }
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Switchboard · AGENTS.md template · human-readable rendering (canonical file: AGENTS-template.md)</p>
+  <h1>The contract your agents read on every run</h1>
+  <p class="lede">Paste the markdown version into your team's AGENTS.md on planning day. Color code:</p>
+  <div class="legend">
+    <span><span class="tag m">FLOOR</span> the coordination floor — keep exactly as written; it protects everyone</span>
+    <span><span class="tag c">TEAM CHOICE</span> yours to fill in / decide on planning day</span>
+  </div>
+</header>
+
+<h2>You are one of many parallel sessions <span class="tag m">FLOOR</span></h2>
+<div class="info"><p><b>Seven to eight developers on YOUR team</b> are driving agents against <b>your team's Linear board</b> (one board per team — the other team has its own). You coordinate through the board, not by guessing. The human speaks English; <b>you speak <code>swb</code></b> — every board write goes through an <code>swb</code> verb, never a raw Linear MCP write. Verbal briefings die at the first context compaction; this file plus the hooks IS the protocol.</p></div>
+
+<h2>The MUSTs — the coordination floor <span class="tag m">FLOOR</span></h2>
+<div class="must-block">
+<ol>
+  <li><b>Claim before you edit.</b> Never touch a file for a ticket you haven't claimed: <code>swb claim &lt;KEY&gt; --files "&lt;globs&gt;"</code> first — it assigns your human, moves to In Progress, cuts the worktree, declares your files. Work inside that worktree.</li>
+  <li><b>Declare your files honestly.</b> Your <code>--files</code> globs are what the ownership guard checks for everyone else. Under-declaring hides collisions; over-declaring blocks teammates.</li>
+  <li><b>Never create Todo work.</b> <code>swb new</code> lands in Backlog; only a human promotes. Never move a ticket to Todo yourself.</li>
+  <li><b>Never close your own ticket.</b> <code>swb done</code> → In Review is as far as you go. A human merges to Done.</li>
+  <li><b><code>done</code> is gated — don't fight it.</b> It runs the team's tests first and refuses on failure, then requires a real <code>--pr</code>. Fix the tests or open the PR; never route around.</li>
+  <li><b>Gate 2 survives skip-permissions.</b> <code>claim</code>/<code>done</code> are DENIED by a hook without <code>--approved</code>. Hitting the denial means: ask your human in chat, get their explicit yes, re-run with <code>--approved</code>. NEVER add the flag without that yes — it's logged and visible forever.</li>
+  <li><b>Read the full ticket before building.</b> <code>claim</code> prints the spec; for any other ticket a digest references, <code>swb show &lt;KEY&gt;</code> first. Titles are headlines, not specs.</li>
+  <li><b>Ask instead of guessing.</b> Unknown you'd otherwise guess at? <code>swb ask &lt;KEY&gt; @&lt;owner&gt; "…"</code>, park that piece, keep working elsewhere. Never block, never guess.</li>
+  <li><b>No drive-by refactors.</b> Nothing outside your declared files, however ugly the neighbors. Cleanup is its own Backlog ticket.</li>
+  <li><b>One claim at a time (WIP = 1).</b> Finish or <code>release</code> before claiming the next. <span class="tag c">TEAM CHOICE</span> teams may change the limit — the default is 1.</li>
+  <li><b>Every write is signed; the human is accountable.</b> <code>🤖 Claude — via &lt;human&gt;</code> is appended automatically. Never impersonate a human answer.</li>
+  <li><b>Subagents never write to the board.</b> Fleets may read (<code>sync</code>/<code>show</code>/<code>board</code>/<code>members</code>); all writes come from the main session. One claim = one worktree, no matter how many subagents inside.</li>
+  <li><b>Compose with the repo's own CLAUDE.md.</b> bistrainerdev's hard stops, <code>/bis-plan</code>→<code>/bis-build</code>, design-system rules, dev-DB read-only all still bind. Conflict → the repo hard-stop wins.</li>
+  <li><b>Use the knowledge tools before guessing at CFML.</b> Codegraph MCP + BIS knowledge base answer codebase facts; LLM training data on ColdFusion is thin — verify idioms against the team's anchor files instead of inventing them.</li>
+</ol>
+</div>
+
+<h2>Act on the digest — mandatory, not a bulletin <span class="tag m">FLOOR</span></h2>
+<div class="must-block"><p>Every prompt carries a board digest ending in an <code>act</code> directive. If any item — a claim, state change, discovery, <code>@you</code> — intersects your claimed ticket or declared files, <b>stop and state the impact before continuing</b>. "Session A changed the schema, so I'm adapting" is the behavior this whole system exists to produce; silently building on a stale assumption is the failure it exists to prevent.</p></div>
+
+<h2>Deep reads: reader subagents <span class="tag m">FLOOR</span></h2>
+<div class="info"><p>When multiple tickets need a deep read, don't swallow them into your own context — spawn a read-only subagent: <i>"run <code>swb show HAC-23</code> and <code>HAC-31</code>; report ONLY what affects <code>src/player/**</code>; two paragraphs."</i> Readers are read-only; the PM runs the standing hourly version (stuck tickets, aging @asks, scope drift).</p></div>
+
+<h2>swb crib sheet <span class="tag m">FLOOR</span></h2>
+<div class="tablewrap"><table>
+  <tr><th>Verb</th><th>You run it to…</th><th>Notes</th></tr>
+  <tr><td><code>swb sync</code></td><td>What changed since my last look</td><td>Read-only, safe anytime</td></tr>
+  <tr><td><code>swb board</code></td><td>Everything, by status, with owners</td><td>Read-only — "what is everyone doing?"</td></tr>
+  <tr><td><code>swb show &lt;KEY&gt;</code></td><td>One ticket, full text + comments</td><td>Before acting on any referenced ticket</td></tr>
+  <tr><td><code>swb members</code></td><td>Team roster: @handle → full name</td><td>Resolve who's who</td></tr>
+  <tr><td><code>swb claim &lt;KEY&gt; --files "…"</code></td><td>Take a Todo ticket</td><td>Gate 2 applies; exit 3 = lost the race, take another</td></tr>
+  <tr><td><code>swb ask &lt;KEY&gt; @who "…"</code></td><td>Ask the owner, land in their @you slot</td><td>Park and move on</td></tr>
+  <tr><td><code>swb discover "…"</code></td><td>Broadcast a cross-cutting finding</td><td>Reaches every session next prompt</td></tr>
+  <tr><td><code>swb done &lt;KEY&gt; --pr &lt;url&gt;</code></td><td>Finish: tests gate → In Review</td><td>Gate 2 applies; refuses on red tests</td></tr>
+  <tr><td><code>swb release &lt;KEY&gt;</code></td><td>Give a claim back (→ Todo)</td><td>Keeps branch/worktree</td></tr>
+  <tr><td><code>swb doctor [--fix]</code></td><td>Is my setup healthy</td><td>Key, team, API, five statuses</td></tr>
+</table></div>
+<p><b>Exit codes:</b> 0 ok · 2 failed-with-recipe (do the printed <code>MANUAL RECIPE:</code> steps by hand — a broken tool never stops the build) · 3 claim lost the race.</p>
+
+<h2>Codex seats <span class="tag m">FLOOR</span></h2>
+<div class="must-block"><p><b>Codex users run Codex through Claude Code's <code>/codex</code> plugin</b> — <a href="https://github.com/openai/codex-plugin-cc">github.com/openai/codex-plugin-cc</a>. Not optional: it's the only setup where the digest reaches Codex work. Bare-CLI fallback (only if a seat truly can't): run <code>swb sync</code> at the start of every task and before touching any shared area.</p></div>
+
+<h2><code>.swb.json</code> — repo root, required <span class="tag c">TEAM CHOICE</span></h2>
+<div class="choice-block">
+<div class="term">{ "teamKey": "<b>&lt;your Linear team key&gt;</b>", "testCommand": "<b>&lt;your done-gate command&gt;</b>", "defaultBranch": "<b>&lt;your team branch&gt;</b>", "gate2": "on" }</div>
+<p><code>teamKey</code> scopes everything to your board · <code>testCommand</code> is what <code>done</code> runs — QA owns it · <code>defaultBranch</code> = your team's master branch · <code>gate2</code>: "on" (default) or "off" if your team chose autonomous claiming, out loud.</p>
+</div>
+
+<h2>Team fill-ins — from your planning-day answers <span class="tag c">TEAM CHOICE</span></h2>
+<div class="choice-block">
+<ul style="list-style:none;padding-left:0">
+  <li>Team branch: <span class="blank"></span></li>
+  <li>testCommand (done-gate): <span class="blank"></span></li>
+  <li>Gate 2 on/off: <span class="blank"></span> &nbsp; WIP limit: <span class="blank"></span></li>
+  <li>Backlog sweeper (name + cadence): <span class="blank"></span></li>
+  <li>DB-script owner: <span class="blank"></span> &nbsp; Deploy/presentation owner: <span class="blank"></span></li>
+  <li>God-file lanes (serialized): <span class="blank"></span></li>
+  <li>Anchor files per module ("write CFML like this"): <span class="blank"></span></li>
+  <li>Review pairs (QA coordinates): <span class="blank"></span></li>
+  <li>Roster & label routing (@design / @qa / @pm): <span class="blank"></span></li>
+  <li>File-ownership map (area → globs): <span class="blank"></span></li>
+  <li>Ready-ticket template (what the sweeper requires before promoting): <span class="blank"></span></li>
+  <li>Merge cadence & review policy: <span class="blank"></span></li>
+  <li>/bis-plan → /bis-build × ticket-cycle sequence: <span class="blank"></span></li>
+</ul>
+</div>
+
+<footer>AGENTS.md template · canonical markdown: AGENTS-template.md (agents read that; this page is for humans) · switchboard repo</footer>
+</div>
