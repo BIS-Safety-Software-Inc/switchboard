@@ -167,13 +167,11 @@ function findSwbRoot(cwd) {
   return null;
 }
 function hasSwbContext(cwd) {
-  // SCOPING DISABLED for the hackathon (owner call, 2026-07-08): digests show
-  // in EVERY session machine-wide. Two days of ambient noise in unrelated
-  // projects costs less than any chance of a silenced digest on build day —
-  // participants uninstall after. The scoping machinery below is preserved for
-  // v2; re-enable by deleting the next line.
-  return true;
-  // eslint-disable-next-line no-unreachable
+  // SCOPED DELIVERY (owner call, 2026-07-08 pm — reversed the morning revert):
+  // full digests only inside swb repos; @you mentions deliver EVERYWHERE
+  // (handled by the caller). Panic switch below restores machine-wide delivery
+  // on any machine that seems quiet: set SWB_DIGEST_EVERYWHERE=1.
+  if (process.env.SWB_DIGEST_EVERYWHERE) return true;
   if (process.env.SWB_TEAM_KEY || findSwbRoot(cwd)) return true;
   // Claimed-work sessions MUST hear even if .swb.json wasn't committed (a
   // worktree only carries committed files): any cwd inside a claim's recorded
