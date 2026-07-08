@@ -93,9 +93,6 @@
 </table></div>
 <p><b>Exit codes:</b> 0 ok · 2 failed-with-recipe (do the printed <code>MANUAL RECIPE:</code> steps by hand — a broken tool never stops the build) · 3 claim lost the race.</p>
 
-<h2>Codex seats <span class="tag m">FLOOR</span></h2>
-<div class="must-block"><p><b>Codex users run Codex through Claude Code's <code>/codex</code> plugin</b> — <a href="https://github.com/openai/codex-plugin-cc">github.com/openai/codex-plugin-cc</a>. Not optional: it's the only setup where the digest reaches Codex work. Bare-CLI fallback (only if a seat truly can't): run <code>swb sync</code> at the start of every task and before touching any shared area.</p></div>
-
 <h2><code>.swb.json</code> — repo root, required <span class="tag c">TEAM CHOICE</span></h2>
 <div class="choice-block">
 <div class="term">{ "teamKey": "<b>&lt;your Linear team key&gt;</b>", "testCommand": "<b>&lt;your done-gate command&gt;</b>", "defaultBranch": "<b>&lt;your team branch&gt;</b>", "gate2": "on" }</div>

@@ -148,27 +148,6 @@ stops the build.
 
 ---
 
-## Codex / non-Claude harnesses — degraded mode
-
-**Better option first: run Codex THROUGH Claude Code's `/codex` plugin.** Claude
-Code stays your shell (hooks fire → digest + yellow block + guard all work);
-the Codex engine does the coding inside it. Full Switchboard, nothing degraded.
-The rest of this section applies only if you run the bare `codex` CLI as your
-whole terminal:
-
-Automatic digest injection is a Claude Code hook feature. If you are **not**
-running under Claude Code (Codex, plain CLI, etc.), you do **not** get the
-ambient digest. Your one extra obligation:
-
-> **Run `swb sync` at the start of every task**, and again whenever you're about
-> to touch a shared area or make an assumption about another ticket.
-
-This is the same coordination floor, pulled manually instead of pushed. Every
-other MUST applies unchanged. (Teams: pair Codex sessions with Claude-heavy
-tickets so a blind session isn't on the critical path.)
-
----
-
 ## `.swb.json` (repo root — required)
 
 ```json
