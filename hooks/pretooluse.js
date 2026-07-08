@@ -230,7 +230,16 @@ function main() {
     // Ownership guard only inside swb repos (Gate 2 above is exempt: an swb
     // claim/done invocation IS swb context wherever it runs).
     const inSwb = (() => {
+      if (process.env.SWB_DIGEST_EVERYWHERE) return true;
       if (process.env.SWB_TEAM_KEY) return true;
+      try {
+        const own = readJsonSafe(ownershipPath()) || {};
+        const here = path.resolve(cwd || process.cwd());
+        for (const k of Object.keys(own)) {
+          const wt = own[k] && own[k].worktree;
+          if (wt && (here === path.resolve(wt) || here.startsWith(path.resolve(wt) + path.sep))) return true;
+        }
+      } catch (_) {}
       let dir = path.resolve(cwd || process.cwd());
       for (let i = 0; i < 10; i++) {
         try { if (fs.existsSync(path.join(dir, '.swb.json'))) return true; } catch (_) {}

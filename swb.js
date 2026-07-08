@@ -1116,6 +1116,16 @@ async function verbDoctor(ctx) {
   } else if (missing.length) {
     out.write(`  → run "swb doctor --fix" to create: ${missing.map((s) => STATE_MAP[s]).join(', ')}\n`);
   }
+  // .swb.json must be COMMITTED or worktrees won't carry it → sessions inside
+  // them would drop to mentions-only silently (near-miss, 2026-07-08).
+  try {
+    if (inGitRepo(cwd) && fs.existsSync(path.join(cwd, '.swb.json'))) {
+      const tracked = git(['ls-files', '.swb.json'], { cwd });
+      if (tracked.code === 0 && !String(tracked.stdout).trim()) {
+        out.write('  ⚠ .swb.json exists but is NOT COMMITTED — commit it, or sessions in worktrees go digest-blind\n');
+      }
+    }
+  } catch (_) { /* advisory only */ }
   out.write(allOk ? '  ✔ doctor: all green\n' : '  ✖ doctor: issues found (see above)\n');
   return { code: allOk ? 0 : 2 };
 }

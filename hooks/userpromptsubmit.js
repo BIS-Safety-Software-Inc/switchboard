@@ -167,7 +167,20 @@ function findSwbRoot(cwd) {
   return null;
 }
 function hasSwbContext(cwd) {
-  return !!(process.env.SWB_TEAM_KEY || findSwbRoot(cwd));
+  if (process.env.SWB_DIGEST_EVERYWHERE) return true; // panic switch: pre-scoping behavior
+  if (process.env.SWB_TEAM_KEY || findSwbRoot(cwd)) return true;
+  // Claimed-work sessions MUST hear even if .swb.json wasn't committed (a
+  // worktree only carries committed files): any cwd inside a claim's recorded
+  // worktree counts as in-repo.
+  try {
+    const own = readJsonSafe(ownershipPath()) || {};
+    const here = path.resolve(cwd || process.cwd());
+    for (const k of Object.keys(own)) {
+      const wt = own[k] && own[k].worktree;
+      if (wt && (here === path.resolve(wt) || here.startsWith(path.resolve(wt) + path.sep))) return true;
+    }
+  } catch (_) {}
+  return false;
 }
 
 // Solid yellow box for the HUMAN-visible receipt. Wrap to a fixed width and pad
