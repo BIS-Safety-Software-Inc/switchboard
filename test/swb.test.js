@@ -322,6 +322,35 @@ test('claim: race — assignee changed on re-fetch → back off, exit 3', async 
   rm(home); rm(cwd);
 });
 
+// Regression (live tour, 2026-07-08): the done gate must test the ticket's
+// WORKTREE, not the invocation cwd — a passing base repo once vouched for a
+// broken worktree because done was run from the base folder.
+test('done: test gate runs in the recorded worktree, not the invocation cwd', async () => {
+  const home = mkHome();
+  const cwd = mkRepo();            // base repo: PASSING test
+  const wt = mkRepo();             // stands in for the claim worktree: FAILING test
+  fs.mkdirSync(path.join(cwd, 'test'), { recursive: true });
+  fs.writeFileSync(path.join(cwd, 'test', 'ok.test.js'),
+    "const t=require('node:test');const a=require('node:assert');t('ok',()=>a.ok(true));\n");
+  // The worktree's OWN testCommand fails. (Deliberately not a nested `node
+  // --test`: a child test-runner inherits NODE_TEST_CONTEXT from this suite
+  // and exits 0 — the quirk that first masked this regression test.)
+  fs.writeFileSync(path.join(wt, '.swb.json'),
+    JSON.stringify({ teamKey: 'HAC', testCommand: 'node -e "process.exit(1)"' }));
+  await withEnv(home, 'lin_test_key', async () => {
+    fs.writeFileSync(path.join(home, 'ownership.json'), JSON.stringify({
+      'HAC-14': { files: ['src/*'], assignee: 'Turni', sessionId: 's1', ts: 'x', worktree: wt },
+    }));
+    installFetch([]); // gate must refuse BEFORE any network call
+    const { code, out } = await runVerb(['done', 'HAC-14', '--pr', 'https://x/1'], { home, cwd });
+    assert.strictEqual(code, 2, out);
+    assert.match(out, /test gate runs in: /, 'gate announces where it runs');
+    assert.ok(out.includes(wt), 'gate ran in the worktree, not cwd');
+    assert.match(out, /tests failed/, 'worktree failing test refused the done');
+  });
+  rm(home); rm(cwd); rm(wt);
+});
+
 // Regression (live, 2026-07-07 first user tour): Linear's issues(filter:) search
 // index lags writes by many seconds. The recheck MUST read issue(id:) — trusting
 // the stale filtered path produced a false "race lost" on a ticket we owned.

@@ -690,12 +690,15 @@ async function verbClaim(ctx) {
       out.write(`\n⚠ claim race lost: ${key} is now assigned to ${recheck.assignee ? recheck.assignee.name : 'someone else'}. Backing off.\n`);
       return { code: 3 };
     }
-    // worktree (skip with warning if not a git repo)
+    // worktree (skip with warning if not a git repo). Record its ABSOLUTE path —
+    // verbDone aims the test gate at it regardless of where done is invoked
+    // (live tour finding: gate once tested whatever cwd it was run from).
+    let worktreeAbs = '';
     if (inGitRepo(cwd)) {
       const wt = path.join('..', 'switchboard-wt', key);
       const r = git(['worktree', 'add', wt, '-b', key], { cwd });
       if (r.code !== 0) out.write(`⚠ worktree add failed (continuing): ${r.stderr.trim() || r.stdout.trim()}\n`);
-      else out.write(`worktree: ${wt} (branch ${key})\n`);
+      else { worktreeAbs = path.resolve(cwd, wt); out.write(`worktree: ${wt} (branch ${key})\n`); }
     } else {
       out.write('⚠ not in a git repo — skipping worktree creation\n');
     }
@@ -714,7 +717,7 @@ async function verbClaim(ctx) {
     } catch (_) { /* labeling is best-effort — never fail a claim over a chip */ }
     // ownership.json
     const own = readOwnership();
-    own[key] = { files, assignee: viewer.name, sessionId, ts: new Date().toISOString() };
+    own[key] = { files, assignee: viewer.name, sessionId, ts: new Date().toISOString(), worktree: worktreeAbs || undefined };
     writeOwnership(own);
     // claim comment listing files
     await postComment(issue.id, `Claimed ${key}${args.approved ? ' (human-approved)' : ''}. Files: ${files.length ? files.join(', ') : '(none declared)'}`, viewer.name, apiKey);
@@ -736,13 +739,20 @@ async function verbDone(ctx) {
   const key = args._[1];
   if (!key) throw new RecipeError('done needs an issue key', ['Usage: swb done <KEY> --pr <url>']);
   const recipe = [
-    `Ensure tests pass locally: ${repo.testCommand}`,
+    `Ensure tests pass in the ticket's worktree: ${repo.testCommand}`,
     `Open the PR for ${key} and copy its URL`,
     `Move ${key} to "In Review" in Linear`,
     `Post a summary comment on ${key} describing what changed`,
   ];
-  // (1) test gate — run first, refuse on non-zero
-  const testResult = runTestCommand(repo.testCommand, cwd, out);
+  // (1) test gate — run first, refuse on non-zero. The gate ALWAYS aims at the
+  // ticket's worktree when one was recorded at claim time: that is where the
+  // work lives. Testing the invocation cwd let a passing base repo vouch for a
+  // broken worktree (caught live in the first user tour).
+  const ownEntry = readOwnership()[key];
+  const gateCwd = ownEntry && ownEntry.worktree && fs.existsSync(ownEntry.worktree) ? ownEntry.worktree : cwd;
+  const gateRepo = gateCwd === cwd ? repo : loadRepoConfig(gateCwd);
+  out.write(`▶ test gate runs in: ${gateCwd}\n`);
+  const testResult = runTestCommand(gateRepo.testCommand, gateCwd, out);
   if (testResult.code !== 0) {
     out.write(`\n✖ ${key}: tests failed (exit ${testResult.code}) — refusing to mark done.\n`);
     throw new RecipeError(`tests failed for ${key} (exit ${testResult.code})`, recipe);
@@ -761,7 +771,7 @@ async function verbDone(ctx) {
     // (4) summary comment (arg or generated from git log -5 --oneline)
     let summary = typeof args.summary === 'string' ? args.summary : '';
     if (!summary) {
-      const log = gitLogSummary(cwd, 5);
+      const log = gitLogSummary(gateCwd, 5); // the worktree's commits ARE the work
       summary = log ? `Recent commits:\n${log}` : 'Work completed.';
     }
     await postComment(issue.id, `Done → In Review. PR: ${prUrl}\n\n${summary}`, viewer.name, apiKey);
