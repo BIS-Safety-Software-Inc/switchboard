@@ -92,7 +92,8 @@
     <li><span class="tag t-decide">DECIDE</span>WIP limit: one claimed ticket per person at a time? (It's a norm, not code — the board makes hoarding visible; you enforce it or drop it.)</li>
     <li><span class="tag t-decide">DECIDE</span>Ticket size and template: what must a ticket contain before the sweeper promotes it (acceptance criteria, files to touch, blocked-by)? How small is a ticket — 30–90 min of agent work is the floor's suggestion.</li>
     <li><span class="tag t-decide">DECIDE</span>Subagents / goal loops / ultracode: allowed? The floor's rule is "the claim is the unit" — whatever runs inside one claim is that dev's business, subagents never write to the board. Set your token discipline (the hackathon rules already say no spawning 100 agents).</li>
-    <li><span class="tag t-decide">DECIDE</span>Codex seats: run Codex through Claude Code's /codex plugin (full digest awareness) or bare CLI (agent must run <code>swb sync</code> at task start)? Who on your team is which?</li>
+    <li><span class="tag t-must">ANSWER</span><b>Codex users MUST install the codex plugin for Claude Code</b> — <a href="https://github.com/openai/codex-plugin-cc">github.com/openai/codex-plugin-cc</a> — and run Codex through Claude Code. This is not optional: it's the only setup where the board digest reaches Codex work. Which seats on your team does this apply to, and is it installed before build day?</li>
+    <li><span class="tag t-must">ANSWER</span><b>You're expected to use the repo's own <code>/bis-plan</code> → <code>/bis-build</code> workflow.</b> How does it compose with the ticket cycle — e.g. claim → run /bis-plan inside the worktree → /bis-build → <code>swb done</code>? Where do its plan artifacts live, and does its commit step fit your merge cadence? Write the sequence down; two workflows nobody reconciled = every dev improvising their own.</li>
     <li><span class="tag t-must">ANSWER</span>Disclosure round: everyone skims their personal global CLAUDE.md/rules for anything touching shared code style, commits, or refactoring habits — say it out loud. Personal agent config is invisible team state.</li>
   </ul>
 </section>
@@ -101,7 +102,7 @@
   <h2><span class="no">5</span>Merge &amp; review questions <span class="when">captain + QA domains</span></h2>
   <ul>
     <li><span class="tag t-who">NAME</span>The AI captain owns merge discipline. What's your cadence — per-ticket merges to the team branch? The noon checkpoint is mandatory (rules); what else? At agent speed, "merge when finished" is how a day dies.</li>
-    <li><span class="tag t-must">ANSWER</span>Who eyeballs merge-conflict resolutions? (Agents resolve conflicts confidently and wrongly; a conflict an agent resolved should be a diff a human reads.)</li>
+    <li><span class="tag t-must">ANSWER</span>Who eyeballs merge-conflict resolutions? (Agents resolve conflicts confidently and wrongly; a conflict an agent resolved should be a diff a human reads.) Then again… maybe that reviewer doesn't have to be a human — maybe there's an agent whose only job is auditing conflict resolutions. Nobody's built it for you. Wink.</li>
     <li><span class="tag t-who">NAME</span>QA coordinates Gate 3 (review): assign review pairs NOW (A reviews B, B reviews C…). What's your bar for "reviewed" — a human read the diff, or something more?</li>
     <li><span class="tag t-decide">DECIDE</span>Drive-by refactors: the template forbids changes outside a ticket's declared files. Keep that, or define your own cleanup policy?</li>
     <li><span class="tag t-who">NAME</span>QA also stewards ask-culture: when a guess ships ("assumed the schema"), route it back — "that should have been a <code>swb ask</code>." Solo habit is guessing; team habit has to be asking.</li>
@@ -112,10 +113,36 @@
 <section>
   <h2><span class="no">6</span>Demo &amp; deploy questions <span class="when">also on the organizers before Friday</span></h2>
   <ul>
-    <li><span class="tag t-must">ANSWER</span><b>Where does your demo run at 4:45 on build day, and how does code get there?</b> The agenda says "deploy to team sandbox" — as of now that environment is undefined. Whatever the org answer is, your team plans the 3:30 freeze → test → deploy sequence around it. <span class="tag t-who">NAME</span> one deploy owner.</li>
+    <li><span class="tag t-must">ANSWER</span><b>The 4:45 slot is a PRESENTATION more than a demo — what exactly will you show, from where?</b> Screen-share your regular dev environment? A recorded run? Slides + live board walkthrough? Decide what "showing it works" looks like and plan the 3:30 freeze → test → capture sequence around it. <span class="tag t-who">NAME</span> one person who owns the showing.</li>
     <li><span class="tag t-must">ANSWER</span>Each team works on its own master branch in bistrainerdev — which branch, and is <code>.swb.json</code> (teamKey, testCommand, defaultBranch) committed on it?</li>
   </ul>
-  <div class="openbox"><b>Organizer note (Turni):</b> the sandbox/demo environment and the laptop→dev-server path are open questions for whoever owns dev infra — needed before the Friday prep meeting so teams can answer the two questions above.</div>
+  <div class="openbox"><b>Organizer note (Turni):</b> the sandbox/demo environment and the laptop→dev-server path are open questions for whoever owns dev infra.</div>
+</section>
+
+<section>
+  <h2><span class="no">6b</span>Scope &amp; scaffolding questions <span class="when">you can't commit code today — you CAN commit a plan</span></h2>
+  <ul>
+    <li><span class="tag t-must">ANSWER</span><b>What exactly is your committed scope?</b> Written as a checklist of shippable statements ("a learner can X", "an admin sees Y") — you're judged against THIS, not the other team. Realistic-and-90%-done beats inflated-and-half-done; the cross-team critique will try to cut you, so pre-decide what you'd cut first. After today, scope changes can only be cuts.</li>
+    <li><span class="tag t-decide">DECIDE</span>What's your scope-cut policy mid-day — who calls a cut at 1pm when a lane is behind, and in what order do committed items fall?</li>
+    <li><span class="tag t-must">ANSWER</span><b>The scaffolding, fully planned even though no code is allowed today:</b> exact list of what gets built first at 8:15 (schema scripts, contracts, shared components, fixtures), in what order, by whom, and the ticket bodies pre-written in Backlog TODAY so build day starts with claiming, not writing tickets.</li>
+    <li><span class="tag t-decide">DECIDE</span>Presentation prep during the day, not at 4:00: the rubric's 20% lessons-learned line requires you to explain what your agents actually did — judges will pick a commit and ask. Who's capturing the roadblock/adaptation story AS IT HAPPENS, and which technique are you documenting as the "thing the org didn't know before"?</li>
+    <li><span class="tag t-decide">DECIDE</span>Fallback drill: if the kit, Linear, or the network misbehaves at 10am, what's your degraded mode (the manual recipes + the board in the browser)? One sentence, agreed now, so nobody freezes.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">6c</span>Rosters <span class="when">for reference — teams nominate their own captain</span></h2>
+  <div class="tablewrap"><table>
+    <tr><th>Team 1</th><th>Team 2</th></tr>
+    <tr><td>Sree</td><td>Rejith <span style="color:var(--muted)">(suggested captain)</span></td></tr>
+    <tr><td>Jon</td><td>Sabareesh</td></tr>
+    <tr><td>Aly</td><td>Raj</td></tr>
+    <tr><td>Dani</td><td>Patrick</td></tr>
+    <tr><td>Aymeric <span style="color:var(--muted)">(suggested captain)</span></td><td>Udayan</td></tr>
+    <tr><td>Mahi <span style="color:var(--muted)">(design/PM)</span></td><td>Mika <span style="color:var(--muted)">(PM/design)</span></td></tr>
+    <tr><td>Preeti <span style="color:var(--muted)">(QA)</span></td><td>John D <span style="color:var(--muted)">(QA)</span></td></tr>
+    <tr><td></td><td>Chai <span style="color:var(--muted)">(QA)</span></td></tr>
+  </table></div>
 </section>
 
 <section>
