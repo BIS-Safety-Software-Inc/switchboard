@@ -1,5 +1,27 @@
 # Switchboard
 
+## START HERE — in this order, nothing else first
+
+1. **Join your Linear team.** Accept the workspace invite from your email, then open
+   your team in Linear and confirm you're a MEMBER of it (invite accepted ≠ team
+   joined — the kit half-works until you join).
+2. **Run one line** (Node ≥ 18; clone somewhere that is NOT OneDrive-synced, e.g. `C:\dev\`):
+   ```sh
+   git clone https://github.com/BIS-Safety-Software-Inc/switchboard.git && cd switchboard && node install.js
+   ```
+   The Floor Tour opens in your browser — read it while the installer works. It will
+   ask for your personal Linear API key and shows you exactly where to get one.
+3. **Open Claude Code and type `/swb-tour`.** Your own Claude walks you through the
+   real thing on a practice ticket (~10 min), then tells you to grab a teammate for
+   Part 2 — **setup isn't done until you've run Part 2 with a buddy.**
+4. **Then, and only then, read [PLANNING-DAY.html](./PLANNING-DAY.html)** — the
+   questions your team answers on planning day. Read individually; decide as a team
+   ON the 13th, not before.
+
+Don't read around this repo first — steps 2 and 3 open everything you need, in order.
+
+---
+
 **A coordination layer that turns Linear into shared memory for eight parallel
 Claude Code sessions.** The terminal is the interface, Linear is the hub, humans
 are the routing layer.
