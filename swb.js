@@ -955,6 +955,28 @@ async function verbBoard(ctx) {
   return { code: 0 };
 }
 
+// Replay the last digests actually DELIVERED to sessions on this machine.
+// Deltas are consumed on delivery — if the human blinks past the yellow box,
+// this answers "did I get anything?" without touching any cursor.
+async function verbLast(ctx) {
+  const { out, args } = ctx;
+  const n = Number(args.n) > 0 ? Number(args.n) : 3;
+  let lines = [];
+  try { lines = fs.readFileSync(paths().events, 'utf8').trim().split('\n'); } catch (_) {}
+  const hits = [];
+  for (let i = lines.length - 1; i >= 0 && hits.length < n; i--) {
+    try {
+      const e = JSON.parse(lines[i]);
+      if (e.digest) hits.push(e);
+    } catch (_) {}
+  }
+  if (!hits.length) { out.write('no delivered digests recorded yet (they log from the next delivery onward)\n'); return { code: 0 }; }
+  for (const e of hits.reverse()) {
+    out.write(`— delivered ${e.ts} (session ${String(e.sessionId).slice(0, 8)}…) —\n${e.digest}\n\n`);
+  }
+  return { code: 0 };
+}
+
 // List the team's active members: @handle + full name. Read-only. Exists so a
 // human (or the /swb-tour guide) can resolve "Pat" to the exact Linear identity
 // ("Patrick Hohol" / @pat.hohol) that digest lines and @you matching key off.
@@ -1149,7 +1171,7 @@ function parseArgs(argv) {
 }
 
 // Dispatch
-const READ_VERBS = new Set(['sync', 'show', 'doctor', 'members', 'board']);
+const READ_VERBS = new Set(['sync', 'show', 'doctor', 'members', 'board', 'last']);
 
 async function run(argv, options) {
   const opts = options || {};
@@ -1185,7 +1207,7 @@ async function run(argv, options) {
   const ctx = { teamKey, apiKey, args, sessionId, hook: !!args.hook, out, now, cwd, repo, claimDelayMs: opts.claimDelayMs };
   const verbs = {
     sync: verbSync, claim: verbClaim, done: verbDone, ask: verbAsk,
-    discover: verbDiscover, new: verbNew, show: verbShow, release: verbRelease, doctor: verbDoctor, members: verbMembers, board: verbBoard,
+    discover: verbDiscover, new: verbNew, show: verbShow, release: verbRelease, doctor: verbDoctor, members: verbMembers, board: verbBoard, last: verbLast,
   };
   const fn = verbs[cmd];
   if (!fn) {
@@ -1226,6 +1248,7 @@ function usage() {
     '  swb show <KEY>',
     '  swb members',
     '  swb board',
+    '  swb last [--n <count>]',
     '  swb release <KEY>',
     '  swb doctor [--fix]',
     '',

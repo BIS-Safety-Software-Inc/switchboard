@@ -490,6 +490,9 @@ async function main() {
     logEvent({
       ts: new Date().toISOString(), cmd: 'hook:userpromptsubmit',
       args: {}, sessionId, ok: true, ms: Date.now() - start,
+      // The delivered digest is transient (delta consumed on delivery). Log its
+      // text so `swb last` can answer "what did I just get?" (first-user miss).
+      digest: hasItems && text.trim() ? text : undefined,
     });
   } catch (err) {
     // NEVER block. Log and exit 0.
