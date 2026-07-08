@@ -1289,7 +1289,9 @@ function hookDigest(opts) {
 async function refetchIfStale(opts) {
   const o = opts || {};
   try {
-    const teamKey = resolveTeamKey(o.cwd);
+    // Fall back to the cached team: out-of-repo sessions still refetch, so
+    // @you mentions delivered machine-wide arrive fresh, never hours stale.
+    const teamKey = resolveTeamKey(o.cwd) || ((readCache() || {}).teamKey || '');
     if (!teamKey) return false;
     const cache = readCache();
     const max = o.maxAgeMs == null ? CACHE_STALE_MS : o.maxAgeMs;

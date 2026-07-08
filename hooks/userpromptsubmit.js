@@ -152,6 +152,24 @@ function hhmm(d) {
 }
 function tsMs(v) { const n = Date.parse(v); return Number.isFinite(n) ? n : 0; }
 
+// Digests belong ONLY in swb-configured repos. Hooks are machine-global, so
+// without this gate the hackathon board followed people into every unrelated
+// project (live finding: a 3h-old @you surfacing in a different project's
+// session). Walk up from cwd looking for .swb.json; SWB_TEAM_KEY env overrides.
+function findSwbRoot(cwd) {
+  let dir = path.resolve(cwd || process.cwd());
+  for (let i = 0; i < 10; i++) {
+    try { if (fs.existsSync(path.join(dir, '.swb.json'))) return dir; } catch (_) {}
+    const up = path.dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  return null;
+}
+function hasSwbContext(cwd) {
+  return !!(process.env.SWB_TEAM_KEY || findSwbRoot(cwd));
+}
+
 // Solid yellow box for the HUMAN-visible receipt. Wrap to a fixed width and pad
 // every row to it — padding to the longest raw line let 300-char @you lines
 // wrap mid-paint into stripes. SHARED by both delivery doors (prompt-time and
@@ -462,26 +480,64 @@ async function main() {
   try {
     sessionId = input.session_id || input.sessionId || 'unknown';
     const cwd = input.cwd || process.cwd();
+    const inRepo = hasSwbContext(cwd); // out-of-repo: mentions-only mode below
 
     // Awaited so the async Linear refetch actually completes (and writes the
     // refreshed cache) BEFORE we compute the digest and exit — see the comment
     // on refetchIfStale. The subsequent digest then reflects fresh data.
     await refetchIfStale(sessionId, cwd);
 
+    // MENTIONS FOLLOW THE PERSON; CHATTER FOLLOWS THE REPO (owner design call):
+    // outside swb repos deliver ONLY @you items — personal mail finds you in any
+    // session — deduped via a separate lastYouTs bookmark so nothing double-fires
+    // and ambient items stay unconsumed for the next in-repo session.
+    if (!inRepo) {
+      const ri = computeDigestInline(sessionId, cwd);
+      const cur = readJsonSafe(cursorPath(sessionId)) || {};
+      const lastYou = tsMs(cur.lastYouTs);
+      const youItems = (ri.items || []).filter((i) => i && i.you && i.ts > lastYou);
+      if (youItems.length) {
+        const cache = readJsonSafe(cachePath());
+        const ytext = renderDigest(cache, youItems);
+        writeJsonSafe(cursorPath(sessionId), Object.assign({}, cur, {
+          lastYouTs: new Date(Math.max(...youItems.map((i) => i.ts))).toISOString(),
+        }));
+        process.stdout.write(JSON.stringify({
+          systemMessage: paintBox(`switchboard (mention): ${youItems.length} for you`, ytext),
+          hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: ytext },
+        }));
+        logEvent({ ts: new Date().toISOString(), cmd: 'hook:userpromptsubmit',
+          args: { mentionOnly: true }, sessionId, ok: true, ms: Date.now() - start, digest: ytext });
+      }
+      process.exit(0);
+    }
+
     const r = computeDigest(sessionId, cwd);
     const text = r.text;
     const hasItems = r.hasItems && !!(text && text.trim());
+    // Skip @you items already delivered out-of-repo (lastYouTs bookmark).
+    const curYou = tsMs((readJsonSafe(cursorPath(sessionId)) || {}).lastYouTs);
+    if (!r.viaSwb && Array.isArray(r.items) && curYou) {
+      const kept = r.items.filter((i) => !(i && i.you && i.ts <= curYou));
+      if (kept.length !== r.items.length) {
+        r.items = kept;
+        r.text = kept.length ? renderDigest(readJsonSafe(cachePath()), kept) : '';
+        r.hasItems = kept.length > 0;
+      }
+    }
+    const text2 = r.text;
+    const hasItems2 = r.hasItems && !!(text2 && text2.trim());
     // advance the cursor when WE computed the items (inline path). When swb.js's
     // hookDigest owns the digest it also owns cursor advancement (wroteCursor).
-    if (hasItems && !r.viaSwb && Array.isArray(r.items)) advanceCursor(sessionId, r.items);
+    if (hasItems2 && !r.viaSwb && Array.isArray(r.items)) advanceCursor(sessionId, r.items);
 
-    if (hasItems && text.trim()) {
+    if (hasItems2 && text2.trim()) {
       // additionalContext goes to the AGENT invisibly; systemMessage is what the
       // HUMAN sees. Owner call (2026-07-07): humans see the WHOLE digest, every
       // line on a solid bright-yellow block (coach-style) — not a truncated
       // one-liner. Each line gets its own ANSI 103/30 wrap + padding so the
       // block renders solid.
-      const itemLines = text.split('\n').filter((l) => /^(@you|claim|state|disc|new)\s/.test(l));
+      const itemLines = text2.split('\n').filter((l) => /^(@you|claim|state|disc|new)\s/.test(l));
       const count = itemLines.length || 1;
       const head = `switchboard: ${count} board update${count === 1 ? '' : 's'}`;
       // Solid box: wrap long lines OURSELVES to a fixed width, then pad every
@@ -489,8 +545,8 @@ async function main() {
       // @you lines exceed the terminal width — each row wrapped mid-paint and
       // the block rendered as broken yellow stripes (first-user report).
       process.stdout.write(JSON.stringify({
-        systemMessage: paintBox(head, text),
-        hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text },
+        systemMessage: paintBox(head, text2),
+        hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: text2 },
       }));
     }
     // empty delta → emit nothing.
@@ -500,7 +556,7 @@ async function main() {
       args: {}, sessionId, ok: true, ms: Date.now() - start,
       // The delivered digest is transient (delta consumed on delivery). Log its
       // text so `swb last` can answer "what did I just get?" (first-user miss).
-      digest: hasItems && text.trim() ? text : undefined,
+      digest: hasItems2 && text2.trim() ? text2 : undefined,
     });
   } catch (err) {
     // NEVER block. Log and exit 0.
@@ -523,5 +579,5 @@ module.exports = {
   buildItems, renderDigest, computeDigestInline, computeDigest,
   digestLooksWellFormed, advanceCursor,
   readJsonSafe, cachePath, cursorPath, ownershipPath, eventsPath, swbHome,
-  sanitizeId, tsMs, viewerName, viewerHandleTokens, paintBox,
+  sanitizeId, tsMs, viewerName, viewerHandleTokens, paintBox, findSwbRoot, hasSwbContext,
 };

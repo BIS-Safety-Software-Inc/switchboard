@@ -1,6 +1,6 @@
 {
-  "session_id": "sess-marc-1",
-  "cwd": "/repo/switchboard",
-  "hook_event_name": "UserPromptSubmit",
-  "prompt": "let me start on the player UI"
+ "session_id": "sess-marc-1",
+ "cwd": ".",
+ "hook_event_name": "UserPromptSubmit",
+ "prompt": "let me start on the player UI"
 }

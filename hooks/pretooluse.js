@@ -227,7 +227,20 @@ function main() {
       }
     }
 
-    if (WATCHED_TOOLS.has(toolName) && filePath) {
+    // Ownership guard only inside swb repos (Gate 2 above is exempt: an swb
+    // claim/done invocation IS swb context wherever it runs).
+    const inSwb = (() => {
+      if (process.env.SWB_TEAM_KEY) return true;
+      let dir = path.resolve(cwd || process.cwd());
+      for (let i = 0; i < 10; i++) {
+        try { if (fs.existsSync(path.join(dir, '.swb.json'))) return true; } catch (_) {}
+        const up = path.dirname(dir);
+        if (up === dir) break;
+        dir = up;
+      }
+      return false;
+    })();
+    if (inSwb && WATCHED_TOOLS.has(toolName) && filePath) {
       // Local claims first (authoritative for this machine), then teammates'
       // claims reconstructed from the board cache — cross-machine coverage.
       const localOwn = readJsonSafe(ownershipPath()) || {};

@@ -274,7 +274,7 @@ test('posttooluse: injects when lastInjectTs is old (>300s) and delta non-empty'
     cursors: { 'sess-marc-1': cur },
   });
   try {
-    const stdin = { session_id: 'sess-marc-1', cwd: '/repo', hook_event_name: 'PostToolUse',
+    const stdin = { session_id: 'sess-marc-1', cwd: '.', hook_event_name: 'PostToolUse',
       tool_name: 'Edit', tool_input: { file_path: '/repo/x.js' } };
     const r = runHook(HOOKS.ptu, stdin, home);
     assert.strictEqual(r.status, 0);
@@ -299,7 +299,7 @@ test('posttooluse: throttled when lastInjectTs is recent (<300s) → nothing', (
     cursors: { 'sess-marc-1': cur },
   });
   try {
-    const stdin = { session_id: 'sess-marc-1', cwd: '/repo', hook_event_name: 'PostToolUse',
+    const stdin = { session_id: 'sess-marc-1', cwd: '.', hook_event_name: 'PostToolUse',
       tool_name: 'Edit', tool_input: { file_path: '/repo/x.js' } };
     const r = runHook(HOOKS.ptu, stdin, home);
     assert.strictEqual(r.status, 0);
@@ -318,7 +318,7 @@ test('posttooluse: not throttled but empty delta → nothing and no lastInjectTs
     cursors: { 'sess-marc-1': cur },
   });
   try {
-    const stdin = { session_id: 'sess-marc-1', cwd: '/repo', hook_event_name: 'PostToolUse',
+    const stdin = { session_id: 'sess-marc-1', cwd: '.', hook_event_name: 'PostToolUse',
       tool_name: 'Edit', tool_input: { file_path: '/repo/x.js' } };
     const r = runHook(HOOKS.ptu, stdin, home);
     assert.strictEqual(r.status, 0);
@@ -368,7 +368,7 @@ test('pretooluse: silent when editing your OWN claimed file', () => {
 test('pretooluse: silent for a file nobody owns', () => {
   const home = makeHome({ ownership: readFixture('ownership.json') });
   try {
-    const stdin = { session_id: 'sess-marc-1', cwd: '/repo/switchboard', tool_name: 'Write',
+    const stdin = { session_id: 'sess-marc-1', cwd: '.', tool_name: 'Write',
       tool_input: { file_path: '/repo/switchboard/README.md' } };
     const r = runHook(HOOKS.pre, stdin, home);
     assert.strictEqual(r.status, 0);
@@ -379,7 +379,7 @@ test('pretooluse: silent for a file nobody owns', () => {
 test('pretooluse: ignores non-watched tools (Read/Bash)', () => {
   const home = makeHome({ ownership: readFixture('ownership.json') });
   try {
-    const stdin = { session_id: 'sess-x', cwd: '/repo/switchboard', tool_name: 'Read',
+    const stdin = { session_id: 'sess-x', cwd: '.', tool_name: 'Read',
       tool_input: { file_path: '/repo/switchboard/db/migrations/0007.sql' } };
     const r = runHook(HOOKS.pre, stdin, home);
     assert.strictEqual(r.status, 0);
@@ -390,8 +390,8 @@ test('pretooluse: ignores non-watched tools (Read/Bash)', () => {
 test('pretooluse: MultiEdit is watched and warns on foreign ownership', () => {
   const home = makeHome({ ownership: readFixture('ownership.json') });
   try {
-    const stdin = { session_id: 'sess-marc-1', cwd: '/repo/switchboard', tool_name: 'MultiEdit',
-      tool_input: { file_path: '/repo/switchboard/src/schema/quiz.ts', edits: [] } };
+    const stdin = { session_id: 'sess-marc-1', cwd: '.', tool_name: 'MultiEdit',
+      tool_input: { file_path: 'src/schema/quiz.ts', edits: [] } };
     const r = runHook(HOOKS.pre, stdin, home);
     assert.strictEqual(r.status, 0);
     const parsed = JSON.parse(r.out);

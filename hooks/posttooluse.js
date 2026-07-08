@@ -83,6 +83,35 @@ function main() {
     sessionId = input.session_id || input.sessionId || 'unknown';
     const cwd = input.cwd || process.cwd();
 
+    // Out of an swb repo: mid-turn deliveries carry ONLY @you items (mentions
+    // follow the person; chatter follows the repo). Same lastYouTs bookkeeping
+    // as the prompt-time hook.
+    if (engine && typeof engine.hasSwbContext === 'function' && !engine.hasSwbContext(cwd)) {
+      try {
+        const ri = engine.computeDigestInline ? engine.computeDigestInline(sessionId, cwd) : null;
+        if (ri && Array.isArray(ri.items)) {
+          const curPath = cursorPath(sessionId);
+          const cur = readJsonSafe(curPath) || {};
+          const lastYou = tsMs(cur.lastYouTs);
+          const youItems = ri.items.filter((i) => i && i.you && i.ts > lastYou);
+          if (youItems.length && typeof engine.renderDigest === 'function') {
+            const cache = readJsonSafe(path.join(swbHome(), 'cache.json'));
+            const ytext = engine.renderDigest(cache, youItems);
+            writeJsonSafe(curPath, Object.assign({}, cur, {
+              lastYouTs: new Date(Math.max(...youItems.map((i) => i.ts))).toISOString(),
+            }));
+            const paint = typeof engine.paintBox === 'function' ? engine.paintBox : null;
+            process.stdout.write(JSON.stringify(Object.assign(
+              paint ? { systemMessage: paint(`switchboard (mention): ${youItems.length} for you`, ytext) } : {},
+              { hookSpecificOutput: { hookEventName: HOOK_EVENT, additionalContext: ytext } }
+            )));
+            logEvent({ ts: new Date().toISOString(), cmd: 'hook:posttooluse',
+              args: { mentionOnly: true }, sessionId, ok: true, ms: Date.now() - start, digest: ytext });
+          }
+        }
+      } catch (_) { /* fail-open */ }
+      process.exit(0);
+    }
     let deliveredDigest;
     // Throttle gate: skip entirely if we injected < 300s ago.
     const cursor = readJsonSafe(cursorPath(sessionId)) || {};
