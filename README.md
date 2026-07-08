@@ -37,6 +37,17 @@ Code hooks that inject "what changed since your last look" on every prompt.
 The dev speaks English; their agent speaks `swb`; a digest keeps everyone
 current without anyone opening Linear.
 
+## BIS Code-Graph — see the whole codebase
+
+This gives your Claude Code a live map of the entire Bistrainer codebase: every
+function, every caller, and every database table each piece of code reads or
+writes (~14,000 components, ~133,000 relationships). It's served from the cloud
+and updates automatically — install once and you always have the current graph.
+
+It arrives **separately from Turni** as `bis-graph-mcp-setup-with-token.zip`
+(it contains an access token — never commit it to any repo, never share it
+outside the team). Your Claude sets it up for you during "set me up".
+
 ## Install
 
 Node ≥ 18. Zero npm dependencies. Cross-platform (macOS / Linux / Windows).

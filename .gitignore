@@ -5,3 +5,6 @@ node_modules/
 .env.local
 dist/
 build/
+
+# NEVER commit — contains an access token (distributed out-of-band by Turni)
+bis-graph-mcp-setup*

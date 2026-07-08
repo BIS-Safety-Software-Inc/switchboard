@@ -42,14 +42,35 @@ and NOWHERE else — never into files, tickets, comments, or your replies.
    with them watching — that IS the task. Re-run `node install.js --key ...` is
    safe (idempotent).
 
-**Step 4 — Hand off to the tour.**
+**Step 4 — BIS Code-Graph — see the whole codebase.**
+This gives their Claude Code a live map of the entire Bistrainer codebase: every
+function, every caller, and every database table each piece of code reads or
+writes (~14,000 components, ~133,000 relationships). It's served from the cloud
+and updates automatically — install once and you always have the current graph.
+
+Turni sends it separately as `bis-graph-mcp-setup-with-token.zip` (it contains
+an access token — it is NEVER in this repo, never committed anywhere, never
+shared outside the team). Ask where they saved it (usually Downloads). Then YOU
+set it up:
+
+1. Unzip it somewhere local (e.g. their home folder — NOT inside a git repo).
+2. Run the installer inside the unzipped `bis-graph-mcp-setup/` folder:
+   macOS/Linux `./install.sh` (chmod +x first if needed) · Windows
+   `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
+3. It registers the MCP server with the token built in — confirm its success
+   output, and tell them the graph tools appear in their NEXT Claude session.
+
+Don't have the zip? Skip, tell them to ping Turni for it, and continue — nothing
+below depends on it.
+
+**Step 5 — Hand off to the tour.**
 Hooks and the tour command load at session start, so: tell them to open a
 **new terminal**, start a **fresh Claude Code session**, and type `/swb-tour`.
 That guided tour takes over — hands-on practice ticket, then a two-person round
 with a buddy. Setup is not complete until the tour's Part 2 is done with a
 teammate. Say that sentence to them.
 
-**Step 5 — After the tour** (mention it now, they do it later): read
+**Step 6 — After the tour** (mention it now, they do it later): read
 PLANNING-DAY.html — the questions their team answers on planning day (read
 individually; decide as a team ON July 13, not before) — and AGENTS-TEMPLATE.html,
 the agent contract those answers fill in.
