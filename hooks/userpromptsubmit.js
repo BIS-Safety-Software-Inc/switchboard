@@ -167,7 +167,13 @@ function findSwbRoot(cwd) {
   return null;
 }
 function hasSwbContext(cwd) {
-  if (process.env.SWB_DIGEST_EVERYWHERE) return true; // panic switch: pre-scoping behavior
+  // SCOPING DISABLED for the hackathon (owner call, 2026-07-08): digests show
+  // in EVERY session machine-wide. Two days of ambient noise in unrelated
+  // projects costs less than any chance of a silenced digest on build day —
+  // participants uninstall after. The scoping machinery below is preserved for
+  // v2; re-enable by deleting the next line.
+  return true;
+  // eslint-disable-next-line no-unreachable
   if (process.env.SWB_TEAM_KEY || findSwbRoot(cwd)) return true;
   // Claimed-work sessions MUST hear even if .swb.json wasn't committed (a
   // worktree only carries committed files): any cwd inside a claim's recorded

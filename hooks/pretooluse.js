@@ -230,7 +230,7 @@ function main() {
     // Ownership guard only inside swb repos (Gate 2 above is exempt: an swb
     // claim/done invocation IS swb context wherever it runs).
     const inSwb = (() => {
-      if (process.env.SWB_DIGEST_EVERYWHERE) return true;
+      return true; // scoping disabled for the hackathon (see userpromptsubmit.js)
       if (process.env.SWB_TEAM_KEY) return true;
       try {
         const own = readJsonSafe(ownershipPath()) || {};
