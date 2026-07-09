@@ -4,3 +4,8 @@
 - **[GATE-VS-FLAG]**: --dangerously-skip-permissions is a master switch; permission-system "ask" rules can't survive it → gates that must hold live in HOOKS (always fire), with the human yes moved into the conversation (--approved handshake).
 - **[QUOTED-PATH-BYPASS]**: Anchored command regex missed `node "/path with spaces/swb.js" claim` → \S* dies on spaces; quoted-path alternates required; the designer's own machine was the bypass case.
 - **[DUAL-DIRECTOR]**: Two paired users both running the same guided tour = two Claudes directing one scene (duplicate tickets, flipped @asks) → asymmetric roles (director/responder) + mandatory flip.
+- **[SHALLOW-MIRROR]**: git-push-mirror leaves the clone shallow → git log "loses" history and panics everyone; remote was always intact → check `git rev-parse --is-shallow-repository` BEFORE concluding history loss; fix = fetch --unshallow.
+- **[WRONG-DIFF-BASE]**: "what changed since it was perfect" measured from the wrong ship commit made a 26-line delta look like 500 → pin the release SHA at ship time and diff only against it.
+- **[FLIP-FLOP-COST]**: 4 reversals on scoping burned a day; the resolution was separating the RISK WINDOWS (setup week vs build day) → when torn, ask "which window does each cost live in" before flipping again; set a lock date.
+- **[OBSERVABILITY-FIRST]**: the unexplainable 10:44 digest was undiagnosable until deliveries logged their admitting door; first door log solved it in one event → when behavior is disputed, add the one-line log before theorizing twice.
+- **[SELF-SESSION-BIAS]**: the dev machine's own session lives half-in-repo (shell parks there), producing "bugs" that are correct behavior → test scoping from THROWAWAY cwds, never the build session.
