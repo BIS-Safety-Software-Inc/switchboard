@@ -171,12 +171,8 @@ function hasSwbContext(cwd) {
   // full digests only inside swb repos; @you mentions deliver EVERYWHERE
   // (handled by the caller). Panic switch below restores machine-wide delivery
   // on any machine that seems quiet: set SWB_DIGEST_EVERYWHERE=1.
-  // Returns the ADMITTING DOOR as a truthy string (logged with every delivery —
-  // an unexplained 10:44 delivery on 2026-07-09 couldn't be diagnosed without it).
-  if (process.env.SWB_DIGEST_EVERYWHERE) return 'env:everywhere';
-  if (process.env.SWB_TEAM_KEY) return 'env:teamkey';
-  const root = findSwbRoot(cwd);
-  if (root) return 'swbjson:' + root;
+  if (process.env.SWB_DIGEST_EVERYWHERE) return true;
+  if (process.env.SWB_TEAM_KEY || findSwbRoot(cwd)) return true;
   // Claimed-work sessions MUST hear even if .swb.json wasn't committed (a
   // worktree only carries committed files): any cwd inside a claim's recorded
   // worktree counts as in-repo.
@@ -185,7 +181,7 @@ function hasSwbContext(cwd) {
     const here = path.resolve(cwd || process.cwd());
     for (const k of Object.keys(own)) {
       const wt = own[k] && own[k].worktree;
-      if (wt && (here === path.resolve(wt) || here.startsWith(path.resolve(wt) + path.sep))) return 'worktree:' + k;
+      if (wt && (here === path.resolve(wt) || here.startsWith(path.resolve(wt) + path.sep))) return true;
     }
   } catch (_) {}
   return false;
@@ -574,7 +570,7 @@ async function main() {
 
     logEvent({
       ts: new Date().toISOString(), cmd: 'hook:userpromptsubmit',
-      args: { door: String(inRepo) }, sessionId, ok: true, ms: Date.now() - start,
+      args: {}, sessionId, ok: true, ms: Date.now() - start,
       // The delivered digest is transient (delta consumed on delivery). Log its
       // text so `swb last` can answer "what did I just get?" (first-user miss).
       digest: hasItems2 && text2.trim() ? text2 : undefined,
