@@ -7,10 +7,10 @@
 ---
 
 ## Last Updated
-- **Date**: 2026-07-07 (evening)
-- **Session**: Session 2 (Session 1 = July 6 autonomous build loop)
-- **Last Commit**: ce0947c
-- **Build Status**: `node --test` → 74 tests, 71 pass, 0 fail, 3 live-gated skips
+- **Date**: 2026-07-09 (afternoon)
+- **Session**: Session 3 (S1 = Jul 6 build; S2 = Jul 7 fix day; S3 = Jul 8-9 ship + field)
+- **Last Commit**: cdc3857 ("quiet mode FINAL") + b1b227d (handoff)
+- **Build Status**: `node --test` → 83 tests, 80 pass, 0 fail, 3 skips; fresh-public-clone E2E verified on cdc3857
 
 ---
 
@@ -20,9 +20,20 @@
 
 ## 2. Current Status
 
+**SHIPPED + FROZEN at cdc3857 (quiet mode FINAL).** Kit released to all 16 participants Jul 8 (Teams message + out-of-band graph zip). Field tours (Preeti/Windows, Abenanth, Rejith, Sabareesh) drove ~12 fixes Jul 8-9. Scoping saga (4 flips) ended QUIET: full digests only in swb repos (.swb.json walk-up / claim-worktree / SWB_DIGEST_EVERYWHERE panic env); @you mentions deliver EVERYWHERE (yellow "switchboard (mention)", lastYouTs dedupe); door logging on every delivery. CODE FREEZE: changes only on owner ask or breakage; debug order = swb last → door log → panic switch → code LAST. Both worlds one `git revert` apart; Friday prep meeting = config lock point.
+
+### Superseded status (Jul 7)
+
 Kit is feature-complete and live-tested by 2 real users (Turni mac + Preeti Windows). July 6: built via autonomous ultracode loop, coordination go/no-go PASSED 3/3, collision proofs green. July 7: ~15 UX/correctness fixes from live first-user testing, then major additions — full-digest yellow receipt (ANSI 103/30), `swb board`/`members` verbs, spec-print on claim, harness label chips, **Linear-native state names everywhere (Backlog/Todo — Triage/Ready retired)**, mandatory-key installer with live validation, auto-PATH (Windows registry-safe + unix profile), FLOOR-TOUR.html opens first on install, **Gate 2 built into pretooluse hook (claim/done denied without `--approved`; survives --dangerously-skip-permissions; `"gate2":"off"` in .swb.json to disable)** — proven live twice on the designer's own session, PLANNING-DAY.html working checklist, tour Part 2 director/responder roles + mandatory flip.
 
 ## 3. What To Do Next
+
+1. Turni sends the two Teams messages (final drafts in Jul 9 session): all-hands (git pull, quiet mode, open sessions inside repo folders) + captains (.swb.json per TEAM BRANCH Monday — Team1=BIS/Team2=HAC, "while on your team branch" wording; AGENTS append; merge/Fable/sweep duties).
+2. Human items: rotate Turni's Linear key · Windows execution of graph-zip install.ps1 (2 min) · Thursday membership sweep · Friday prep hour (FLOOR-TOUR walk + planning questions).
+3. Open with Turni: captains commit .swb.json Monday w/ real testCommand vs earlier w/ explicit no-op.
+4. Quiet-mode confusion before Friday → flip = revert scoping commits; Friday locks it.
+
+### Superseded next-steps (Jul 7)
 
 1. **PENDING USER REQUEST (interrupted)**: "#13 put this in the planning questions" — sandbox/demo question is Section F open-box in PLANNING-DAY.html; user may want it ALSO as an explicit DECIDE line in the planning questions list. Confirm with Turni. (PLANNING-DAY.html + AGENTS-template preview were opened in his browser — he's reading them; expect edit requests.)
 2. Fresh end-to-end retests: Turni's machine (wipe ~/.switchboard, re-clone, install, /swb-tour) + Preeti's Windows re-test with latest.
@@ -44,6 +55,18 @@ Kit is feature-complete and live-tested by 2 real users (Turni mac + Preeti Wind
 | Roles | QA owns reviews + ask-culture; captain owns merge cadence; sweeper can assign at promote | Jul 7 | Planning doc |
 | bistrainerdev | Each team gets own master branch; hackathon AGENTS.md COMPOSES with repo CLAUDE.md (hard-stops win) | Jul 7 | |
 | Installer | Opens FLOOR-TOUR.html first and foremost; key mandatory w/ live validation | Jul 7 | |
+
+### Session 3 decisions (Jul 8-9, DO NOT RE-ASK)
+| Decision | Chosen |
+|---|---|
+| Delivery scope FINAL | QUIET; build day identical both ways; mentions never scoped; Friday = lock |
+| Graph zip | Out-of-band Teams only, NEVER committed (embedded token, public repo); CLAUDE.md step 4 installs; mac-verified live, ps1 read-audited |
+| Repo CLAUDE.md | Self-guiding DOER ("set me up"): membership check → key paste → Claude installs all incl Node |
+| Tour Part 2 | ONE pass one director (flip CUT); board-native @asks, one kickoff ping; wrap auto-opens 3 docs; session starts INSIDE kit folder |
+| Fable | $200/team, captain holds key, handed Monday am |
+| Codex plugin | EVERYONE installs (openai/codex-plugin-cc) |
+| .swb.json | Captains commit once per team branch Monday; kit itself never enters bistrainerdev; per-branch so master untouched |
+| Freeze | No changes without owner ask; code last when debugging |
 
 ## 5. Architecture Summary
 
@@ -71,6 +94,9 @@ Autonomous ultracode build (Fable mastermind + Opus fleets): swb CLI, hooks, ins
 ### Session 2 — 2026-07-07
 Live two-user testing (Turni + Preeti/Windows) → ~15 fixes; yellow receipt; board/members verbs; Linear-native rename; Gate 2 flag-proof; floor tour + planning day docs; system map artifact (33be4d16); floor tour artifact (8b13c4bd); tour director/flip; bistrainerdev investigation (Adobe CF 2023, no local CF run story, dev DB read-only rule exists, /bis-plan workflow binds).
 
+### Session 3 — 2026-07-08/09
+10-gate release audit → shipped · graph-zip step · secrets/malice sweep clean · quiet/loud saga → QUIET final (cdc3857) w/ 6-test scope battery + door logging · field fixes: done-gate aims at recorded worktree, solid yellow box, mid-turn yellow, cross-machine guard, swb last, board-native Part 2, flip cut · laptop repair: ~/.config/git wiped 15:28 Jul 8 by unknown — credential router + hooks + git-push-mirror restored VERBATIM from bis-gastown/docs/CODEX-DUAL-REPO-SETUP.md, mirror ✓ · push-mirror leaves clone shallow (unshallow to fix; remote never affected).
+
 ## 8. Known Risks
 
 - **OPEN: sandbox/demo environment does not exist** (agenda promises it; PLANNING-DAY §F; organizer decision needed before Fri).
@@ -80,3 +106,6 @@ Live two-user testing (Turni + Preeti/Windows) → ~15 fixes; yellow receipt; bo
 - Turni's Linear key pasted in chat Jul 6 — ROTATE before Jul 13.
 - Teams must JOIN Linear team (workspace invite insufficient) — Preeti still not in `swb members` last checked.
 - testCommand for CF undefined until planning day — done-gate is theater without it.
+- (S3) push-mirror leaves local clone SHALLOW — git log looks truncated; `git fetch --unshallow`; remote unaffected.
+- (S3) ~/.config/git wipe culprit unidentified; restore source = the gastown setup doc.
+- (S3) THIS dev machine's session often sits in-repo (shell parks in kit folder) — ambient digests here are CORRECT; door log proves (not a scoping bug).
