@@ -65,7 +65,9 @@ below depends on it.
 
 **Step 5 — Hand off to the tour.**
 Hooks and the tour command load at session start, so: tell them to open a
-**new terminal**, start a **fresh Claude Code session**, and type `/swb-tour`.
+**new terminal**, start a **fresh Claude Code session FROM INSIDE THIS
+switchboard folder** (board reports are scoped to swb repos — starting the tour
+session here guarantees they see everything), and type `/swb-tour`.
 That guided tour takes over — hands-on practice ticket, then a two-person round
 with a buddy. Setup is not complete until the tour's Part 2 is done with a
 teammate. Say that sentence to them.
